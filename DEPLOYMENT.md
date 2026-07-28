@@ -33,7 +33,68 @@ accepted by production.
 
 ---
 
-## Backend — Railway (recommended)
+## Backend — Vercel
+
+Two separate Vercel projects from the same repo, each with its own **Root
+Directory**: `apps/web` for the frontend, `apps/api` for this one. Getting that
+setting wrong is what makes Vercel compile the other app and fail with errors
+that have nothing to do with what you are deploying.
+
+The API runs as a single serverless function rather than a listening server:
+
+- `api/index.js` is the function Vercel invokes. It re-exports `dist/serverless.js`.
+- `src/serverless.ts` awaits the DB, then hands the request to the Express app.
+- `src/app.ts` builds the app with no side effects — no `listen`, no connection.
+- `src/index.ts` still binds a port, and is what Docker and pm2 run. Vercel never
+  loads it.
+- `apps/api/vercel.json` rewrites every path to the function, so Express keeps
+  owning its own routing.
+
+`api/index.js` is deliberately plain JavaScript importing the `tsc` output.
+Vercel compiles files under `api/` with its own bundler, whose module resolution
+does not match this project's NodeNext setup; building first means the function
+runs the same bytes as the Docker image.
+
+### Import settings
+
+| Setting | Value |
+| --- | --- |
+| Root Directory | `apps/api` |
+| Framework Preset | Other |
+| Build Command | *(from `vercel.json`)* |
+
+### Environment variables
+
+Everything from `apps/api/.env.example` except `PORT`, which is meaningless for a
+function. Two values must point at the deployed hosts rather than localhost:
+
+| Variable | Value |
+| --- | --- |
+| `CORS_ORIGINS` | the frontend's Vercel URL |
+| `WEB_APP_URL` | the frontend's Vercel URL |
+| `GOOGLE_REDIRECT_URI` | `https://<api-project>.vercel.app/api/integrations/google/callback` |
+
+`GOOGLE_REDIRECT_URI` must also be added verbatim under **Authorised redirect
+URIs** in the Google Cloud console, or the OAuth callback fails with
+`redirect_uri_mismatch`.
+
+MongoDB Atlas → **Network Access → Add IP Address → `0.0.0.0/0`**. Vercel
+functions have no fixed egress IP; the connection is still authenticated by the
+credentials in `MONGODB_URI`.
+
+### What you give up
+
+- **Cold starts.** A first request after idle pays the Mongo handshake. The
+  connection promise is cached on `globalThis`, so warm invocations skip it.
+- **Request timeouts.** Long report exports can exceed the plan's function limit.
+- **No background work.** Anything that must outlive a response needs a queue.
+
+If any of those bite, the Railway path below runs the identical code with none of
+them — only the two Vercel project settings differ.
+
+---
+
+## Backend — Railway (alternative)
 
 Railway builds `apps/api/Dockerfile` with the **repo root** as context, which is
 what that Dockerfile expects — the workspace lockfile has to be in scope.
