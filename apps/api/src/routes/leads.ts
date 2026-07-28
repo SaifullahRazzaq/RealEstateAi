@@ -7,6 +7,7 @@ import { Call } from '../models/Call.js';
 import { ApiError } from '../lib/apiError.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { requireAuth, requireAdmin, authUser } from '../middleware/auth.js';
+import { leadScope } from '../lib/scope.js';
 
 export const leadsRouter = Router();
 leadsRouter.use(requireAuth);
@@ -40,10 +41,8 @@ leadsRouter.get(
     const limit = Math.min(100, Math.max(1, parseInt(str(req.query.limit) || '10', 10) || 10));
     const skip = (page - 1) * limit;
 
-    const query: Record<string, unknown> = { companyId: user.companyId };
-
-    // RBAC: agents see only their own leads
-    if (user.role === 'agent') query.assignedUser = user.id;
+    // RBAC: agents see only leads assigned to them.
+    const query: Record<string, unknown> = { ...leadScope(user) };
 
     const dateRange = (field: string, value: string) => {
       const start = new Date(value);
@@ -123,8 +122,7 @@ leadsRouter.get(
     const user = authUser(req);
     const tab = str(req.query.tab) || 'all';
 
-    const query: Record<string, unknown> = { companyId: user.companyId };
-    if (user.role === 'agent') query.assignedUser = user.id;
+    const query: Record<string, unknown> = { ...leadScope(user) };
 
     if (tab === 'pipeline') query.isPipeline = true;
     else if (tab === 'meeting') query.status = 'meeting';
@@ -270,7 +268,7 @@ leadsRouter.get(
   '/:id',
   asyncHandler(async (req, res) => {
     const user = authUser(req);
-    const lead = await Lead.findOne({ _id: param(req.params.id), companyId: user.companyId })
+    const lead = await Lead.findOne({ _id: param(req.params.id), ...leadScope(user) })
       .populate('assignedUser', 'name email')
       .lean();
 
@@ -286,7 +284,7 @@ leadsRouter.patch(
     const user = authUser(req);
     const body = req.body ?? {};
 
-    const lead = await Lead.findOne({ _id: param(req.params.id), companyId: user.companyId });
+    const lead = await Lead.findOne({ _id: param(req.params.id), ...leadScope(user) });
     if (!lead) throw new ApiError('NOT_FOUND', 'Lead not found.');
 
     const editable = [
@@ -342,7 +340,7 @@ leadsRouter.get(
   asyncHandler(async (req, res) => {
     const user = authUser(req);
 
-    const lead = await Lead.findOne({ _id: param(req.params.id), companyId: user.companyId });
+    const lead = await Lead.findOne({ _id: param(req.params.id), ...leadScope(user) });
     if (!lead) throw new ApiError('NOT_FOUND', 'Lead not found.');
 
     const comments = await Comment.find({ leadId: param(req.params.id) })
@@ -363,7 +361,7 @@ leadsRouter.post(
 
     if (!comment) throw new ApiError('VALIDATION_ERROR', 'Comment text is required.');
 
-    const lead = await Lead.findOne({ _id: param(req.params.id), companyId: user.companyId });
+    const lead = await Lead.findOne({ _id: param(req.params.id), ...leadScope(user) });
     if (!lead) throw new ApiError('NOT_FOUND', 'Lead not found.');
 
     const newComment = await Comment.create({

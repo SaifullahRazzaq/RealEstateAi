@@ -10,12 +10,14 @@
     "start": "node --env-file=.env dist/index.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "seed": "tsx --env-file=.env src/scripts/seed-leads.ts",
-    "create-admin": "tsx --env-file=.env src/scripts/create-admin.ts"
+    "create-admin": "tsx --env-file=.env src/scripts/create-admin.ts",
+    "seed:demo": "tsx --env-file=.env src/scripts/seed-demo.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "googleapis": "^173.0.0",
     "helmet": "^8.1.0",
     "jose": "^6.2.4",
     "mongoose": "^9.6.2",

@@ -38,4 +38,15 @@ export const env = {
 
   /** Token lifetime in seconds. Defaults to exactly 1 day. */
   TOKEN_TTL_SECONDS: Number(process.env.TOKEN_TTL_SECONDS || 60 * 60 * 24),
+
+  /**
+   * Google Calendar OAuth — needed to create real Meet links.
+   * Optional: when unset, meetings still work with a manually pasted link.
+   */
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
+  GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI || '',
+
+  /** Where to bounce the browser after the Google consent screen. */
+  WEB_APP_URL: process.env.WEB_APP_URL || 'http://localhost:3000',
 } as const;

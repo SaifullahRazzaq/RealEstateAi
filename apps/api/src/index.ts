@@ -14,6 +14,7 @@ import { usersRouter } from './routes/users.js';
 import { dashboardRouter } from './routes/dashboard.js';
 import { reportsRouter } from './routes/reports.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { integrationsRouter } from './routes/integrations.js';
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/integrations', integrationsRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
