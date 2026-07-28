@@ -126,6 +126,14 @@ npm run seed             # demo leads — never run against production
 The **Root Directory must be `apps/web`** — Vercel would otherwise try to build
 the workspace root, which has no Next.js app.
 
+`apps/web/package.json` declares `@tailwindcss/oxide-linux-x64-gnu` and
+`lightningcss-linux-x64-gnu` under `optionalDependencies`. These are Tailwind's
+Linux build binaries, and they exist only so `npm ci` on Vercel's linux/x64
+builder records and installs them — a lockfile generated on macOS otherwise
+omits them and the build dies with
+`Cannot find module '../lightningcss.linux-x64-gnu.node'`. Do not remove them,
+and bump their versions in step with `tailwindcss`.
+
 ### Environment variables
 
 Add `NEXT_PUBLIC_API_URL` for each Vercel environment:
