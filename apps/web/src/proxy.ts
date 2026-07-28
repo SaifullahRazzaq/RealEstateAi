@@ -1,38 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
 
-export async function middleware(req: NextRequest) {
+/**
+ * Next.js 16 renamed the `middleware` file convention to `proxy`.
+ *
+ * This is a UX guard, not a security boundary: it only decodes the token's `exp`
+ * so an expired or missing session bounces to /auth/login before a dashboard page
+ * renders. Signature verification — the part that actually matters — happens in
+ * the API, which never trusts anything decided here.
+ */
+
+const TOKEN_COOKIE = 'crm_token';
+
+function tokenIsUsable(token: string | undefined): boolean {
+  if (!token) return false;
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return false;
+    const json = Buffer.from(payload.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString();
+    const { exp } = JSON.parse(json) as { exp?: number };
+    return typeof exp === 'number' && exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
-
-  // Skip auth API routes
-  if (pathname.startsWith('/api/auth')) return NextResponse.next();
-
-  // Get JWT token
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-  const isLoggedIn = !!token;
 
   const isAuthPage = pathname.startsWith('/auth');
   const isDashboard = pathname.startsWith('/dashboard');
-  const isApi = pathname.startsWith('/api');
+  if (!isAuthPage && !isDashboard) return NextResponse.next();
 
-  // Protect API routes
-  if (isApi && !isLoggedIn) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const isLoggedIn = tokenIsUsable(req.cookies.get(TOKEN_COOKIE)?.value);
 
-  // Redirect logged-in users away from auth pages
   if (isLoggedIn && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', req.nextUrl));
   }
 
-  // Redirect unauthenticated users to login
   if (!isLoggedIn && isDashboard) {
-    return NextResponse.redirect(new URL('/auth/login', req.nextUrl));
+    const loginUrl = new URL('/auth/login', req.nextUrl);
+    loginUrl.searchParams.set('reason', 'session-expired');
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/auth/:path*', '/dashboard/:path*'],
 };

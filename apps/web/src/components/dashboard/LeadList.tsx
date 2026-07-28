@@ -1,11 +1,13 @@
 'use client';
 
+import { apiFetch } from '@/lib/api';
 import { useEffect, useCallback, useState } from 'react';
-import { Phone, Star, Calendar, ChevronRight, ChevronLeft, Loader2, MessageSquare, Clock } from 'lucide-react';
-import { useCRMStore, Lead } from '@/store/crmStore';
+import { Star, ChevronRight, ChevronLeft, Loader2, Clock, ArrowRightLeft, DollarSign } from 'lucide-react';
+import { useCRMStore, Lead, STATUS_META } from '@/store/crmStore';
 import { formatDate, formatPhone, cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { MoveLeadModal } from './MoveLeadModal';
 
 interface LeadListProps {
   tab: string;
@@ -15,11 +17,12 @@ interface LeadListProps {
 }
 
 export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon }: LeadListProps) {
-  const { leads, setLeads, setSelectedLead, searchQuery, selectedLead } = useCRMStore();
+  const { leads, setLeads, setSelectedLead, searchQuery, selectedLead, refreshKey } = useCRMStore();
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalLeads, setTotalLeads] = useState(0);
+  const [moveLead, setMoveLead] = useState<Lead | null>(null);
   const limit = 10;
 
   const fetchLeads = useCallback(async (page: number = 1) => {
@@ -33,9 +36,7 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
       if (date) params.set('date', date);
       if (searchQuery) params.set('search', searchQuery);
 
-      const res = await fetch(`/api/leads?${params}`);
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
+      const data = await apiFetch<{ leads: Lead[]; pagination: { pages: number; total: number } }>(`/api/leads?${params}`);
       setLeads(data.leads);
       setTotalPages(data.pagination.pages);
       setTotalLeads(data.pagination.total);
@@ -60,6 +61,12 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
     return () => clearInterval(interval);
   }, [fetchLeads, currentPage]);
 
+  // Refresh when a lead is moved/updated elsewhere
+  useEffect(() => {
+    if (refreshKey > 0) fetchLeads(currentPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshKey]);
+
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
@@ -68,17 +75,10 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
     }
   };
 
-  const statusStyles: Record<string, { bg: string; text: string; dot: string }> = {
-    new: { bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-500' },
-    daily: { bg: 'bg-amber-500/10', text: 'text-amber-400', dot: 'bg-amber-500' },
-    lost: { bg: 'bg-red-500/10', text: 'text-red-400', dot: 'bg-red-500' },
-    won: { bg: 'bg-green-500/10', text: 'text-green-400', dot: 'bg-green-500' },
-  };
-
   if (loading && leads.length === 0) {
     return (
       <div className="flex items-center justify-center py-40">
-        <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+        <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
       </div>
     );
   }
@@ -93,7 +93,7 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
         <div className="w-20 h-20 rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
           {emptyIcon || <span className="text-3xl">📋</span>}
         </div>
-        <h3 className="text-white font-bold text-lg">{emptyMessage}</h3>
+        <h3 className="text-slate-900 font-bold text-lg">{emptyMessage}</h3>
         <p className="text-slate-500 text-sm mt-2 max-w-xs">Leads will automatically appear here once they are added or assigned to you.</p>
       </motion.div>
     );
@@ -104,7 +104,7 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
       <div className="grid grid-cols-1 gap-3">
         <AnimatePresence mode="popLayout">
           {leads.map((lead, idx) => {
-            const style = statusStyles[lead.status] || statusStyles.new;
+            const meta = STATUS_META[lead.status] || STATUS_META.new;
             return (
               <motion.div
                 layout
@@ -117,28 +117,28 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                 className={cn(
                   'group flex items-center gap-5 px-6 py-5 rounded-[1.5rem] border cursor-pointer transition-all duration-500 relative overflow-hidden',
                   selectedLead?._id === lead._id
-                    ? 'border-blue-500/40 shadow-2xl shadow-blue-500/5'
-                    : 'hover:border-slate-700 hover:bg-white/[0.02]'
+                    ? 'border-orange-500/40 shadow-2xl shadow-orange-500/5'
+                    : 'hover:border-slate-200 hover:bg-slate-50'
                 )}
                 style={{
-                  background: selectedLead?._id === lead._id ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0) 100%)' : 'var(--bg-card)',
+                  background: selectedLead?._id === lead._id ? 'linear-gradient(135deg, rgba(249, 98, 42, 0.08) 0%, rgba(249, 98, 42, 0) 100%)' : 'var(--bg-card)',
                   borderColor: selectedLead?._id === lead._id ? undefined : 'var(--border)',
                 }}
               >
                 {/* Glow Effect */}
                 {selectedLead?._id === lead._id && (
-                  <div className="absolute inset-0 bg-blue-500/5 animate-pulse" />
+                  <div className="absolute inset-0 bg-orange-500/5 animate-pulse" />
                 )}
 
                 {/* Avatar */}
-                <div className="w-12 h-12 rounded-2xl gradient-blue flex items-center justify-center text-white text-base font-bold flex-shrink-0 shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-500">
+                <div className="w-12 h-12 rounded-2xl gradient-blue flex items-center justify-center text-white text-base font-bold flex-shrink-0 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform duration-500">
                   {lead.name.charAt(0).toUpperCase()}
                 </div>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-bold text-white truncate tracking-tight group-hover:text-blue-400 transition-colors">{lead.name}</span>
+                    <span className="text-sm font-bold text-slate-900 truncate tracking-tight group-hover:text-orange-500 transition-colors">{lead.name}</span>
                     {lead.isPipeline && (
                       <div className="w-5 h-5 rounded-lg bg-amber-400/10 flex items-center justify-center">
                         <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
@@ -147,27 +147,41 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-xs text-slate-500 font-medium">{formatPhone(lead.phone)}</span>
-                    <div className="flex items-center gap-3">
-                      {lead.followUpDate && (
-                        <span className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                          <Clock className="w-3 h-3" />
-                          {formatDate(lead.followUpDate)}
-                        </span>
-                      )}
-                    </div>
+                    {lead.company && <span className="text-[11px] text-slate-600 truncate hidden sm:inline">{lead.company}</span>}
+                    {lead.followUpDate && (
+                      <span className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                        <Clock className="w-3 h-3" />
+                        {formatDate(lead.followUpDate)}
+                      </span>
+                    )}
                   </div>
                 </div>
 
+                {/* Deal value */}
+                {lead.dealValue > 0 && (
+                  <div className="hidden md:flex items-center gap-1 text-xs font-bold text-green-400">
+                    <DollarSign className="w-3.5 h-3.5" />
+                    {lead.dealValue.toLocaleString()}
+                  </div>
+                )}
+
                 {/* Status badge */}
-                <div className={cn('px-3 py-1.5 rounded-xl flex items-center gap-2', style.bg)}>
-                  <div className={cn('w-1.5 h-1.5 rounded-full', style.dot)} />
-                  <span className={cn('text-[10px] font-bold uppercase tracking-widest', style.text)}>
-                    {lead.status}
-                  </span>
+                <div className="px-3 py-1.5 rounded-xl flex items-center gap-2" style={{ background: `${meta.color}1a` }}>
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: meta.color }} />
+                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</span>
                 </div>
 
+                {/* Move button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMoveLead(lead); }}
+                  title="Move lead"
+                  className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 hover:text-white hover:bg-orange-500 transition-all border border-slate-200 hover:border-orange-400"
+                >
+                  <ArrowRightLeft className="w-4 h-4" />
+                </button>
+
                 {/* Action Indicator */}
-                <div className="w-10 h-10 rounded-xl bg-slate-900/50 flex items-center justify-center text-slate-500 group-hover:text-white group-hover:bg-blue-500 transition-all duration-500 border border-slate-800 group-hover:border-blue-400">
+                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 group-hover:text-white group-hover:bg-orange-500 transition-all duration-500 border border-slate-200 group-hover:border-orange-400">
                   <ChevronRight className="w-5 h-5" />
                 </div>
               </motion.div>
@@ -178,17 +192,17 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-6 py-6 bg-slate-900/30 rounded-3xl border border-slate-800/50 mt-10">
+        <div className="flex items-center justify-between px-6 py-6 bg-slate-50 rounded-3xl border border-slate-200 mt-10">
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            Showing <span className="text-white">{(currentPage - 1) * limit + 1}</span> to <span className="text-white">{Math.min(currentPage * limit, totalLeads)}</span> of <span className="text-white">{totalLeads}</span> leads
+            Showing <span className="text-slate-900">{(currentPage - 1) * limit + 1}</span> to <span className="text-slate-900">{Math.min(currentPage * limit, totalLeads)}</span> of <span className="text-slate-900">{totalLeads}</span> leads
           </p>
           <div className="flex items-center gap-3">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1 || loading}
-              className="w-10 h-10 rounded-xl border border-slate-800 flex items-center justify-center hover:bg-white/5 disabled:opacity-20 transition-all"
+              className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-100 disabled:opacity-20 transition-all"
             >
-              <ChevronLeft className="w-4 h-4 text-white" />
+              <ChevronLeft className="w-4 h-4 text-slate-900" />
             </button>
             <div className="flex items-center gap-1.5">
               {[...Array(totalPages)].map((_, i) => {
@@ -201,15 +215,15 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                       className={cn(
                         'w-10 h-10 rounded-xl text-xs font-bold transition-all duration-300',
                         currentPage === p
-                          ? 'gradient-blue text-white shadow-lg shadow-blue-500/20 scale-110'
-                          : 'text-slate-500 hover:text-white hover:bg-white/10'
+                          ? 'gradient-blue text-white shadow-lg shadow-orange-500/20 scale-110'
+                          : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
                       )}
                     >
                       {p}
                     </button>
                   );
                 } else if (p === currentPage - 2 || p === currentPage + 2) {
-                  return <span key={p} className="text-slate-700 font-bold px-1 text-xs">...</span>;
+                  return <span key={p} className="text-slate-400 font-bold px-1 text-xs">...</span>;
                 }
                 return null;
               })}
@@ -217,12 +231,24 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages || loading}
-              className="w-10 h-10 rounded-xl border border-slate-800 flex items-center justify-center hover:bg-white/5 disabled:opacity-20 transition-all"
+              className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-100 disabled:opacity-20 transition-all"
             >
-              <ChevronRight className="w-4 h-4 text-white" />
+              <ChevronRight className="w-4 h-4 text-slate-900" />
             </button>
           </div>
         </div>
+      )}
+
+      {moveLead && (
+        <MoveLeadModal
+          lead={moveLead}
+          onClose={() => setMoveLead(null)}
+          onMoved={(updated) => {
+            // Drop the lead from this list if it no longer matches the tab's status
+            setLeads(leads.filter((l) => l._id !== updated._id));
+            setTotalLeads((t) => Math.max(0, t - 1));
+          }}
+        />
       )}
     </div>
   );

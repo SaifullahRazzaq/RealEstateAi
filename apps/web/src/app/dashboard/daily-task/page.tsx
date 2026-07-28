@@ -39,7 +39,7 @@ export default function DailyTaskPage() {
   if (!mounted) {
     return (
       <div className="h-full flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
       </div>
     );
   }
@@ -53,7 +53,7 @@ export default function DailyTaskPage() {
             <CalendarCheck className="w-4 h-4 text-amber-400" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Daily Task</p>
+            <p className="text-sm font-semibold text-slate-900">Daily Task</p>
             <p className="text-xs text-slate-500">Follow-ups scheduled for selected date</p>
           </div>
         </div>
@@ -63,17 +63,17 @@ export default function DailyTaskPage() {
       {/* Date navigator */}
       <div className="flex items-center gap-3">
         <button id="prev-day" onClick={() => setSelectedDate(shiftDate(selectedDate, -1))}
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
           <ChevronLeft className="w-4 h-4" />
         </button>
         <div className="flex items-center gap-2 px-4 py-2 rounded-xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
           <CalendarCheck className="w-4 h-4 text-amber-400" />
-          <span className="text-sm font-semibold text-white">{formatDisplayDate(selectedDate)}</span>
+          <span className="text-sm font-semibold text-slate-900">{formatDisplayDate(selectedDate)}</span>
           {isToday && <span className="badge badge-daily ml-1">Today</span>}
         </div>
         <button id="next-day" onClick={() => setSelectedDate(shiftDate(selectedDate, 1))}
-          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-white transition-colors"
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -83,7 +83,7 @@ export default function DailyTaskPage() {
           value={selectedDate}
           onChange={(e) => setSelectedDate(e.target.value)}
           className="input-field w-auto text-sm"
-          style={{ colorScheme: 'dark' }}
+          style={{ colorScheme: 'light' }}
         />
         {!isToday && (
           <button id="go-today" onClick={() => setSelectedDate(getTodayStr())} className="btn-secondary text-xs py-2">

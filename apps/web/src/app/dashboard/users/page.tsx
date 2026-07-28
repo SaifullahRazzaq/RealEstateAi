@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { 
   Users, UserPlus, Shield, Mail, Trash2, Loader2, 
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { cn } from '@/lib/utils';
 
 interface User {
   _id: string;
@@ -26,8 +28,7 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/users');
-      const data = await res.json();
+      const data = await apiFetch<{ users: User[] }>('/api/users');
       setUsers(data.users || []);
     } catch {
       toast.error('Failed to load users');
@@ -42,14 +43,10 @@ export default function UsersPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await fetch('/api/users', {
+      await apiFetch<{ user: User }>('/api/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUser),
+        body: newUser,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      
       toast.success('User added successfully');
       setShowAddModal(false);
       setNewUser({ name: '', email: '', password: '', role: 'agent' });
@@ -66,7 +63,7 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Team Management</h1>
+          <h1 className="text-xl font-bold text-slate-900">Team Management</h1>
           <p className="text-sm text-slate-500 mt-0.5">Manage your agents and their access roles</p>
         </div>
         <button 
@@ -80,7 +77,7 @@ export default function UsersPage() {
 
       {/* Users Table */}
       <div className="card flex-1 overflow-hidden flex flex-col shadow-xl">
-        <div className="px-6 py-4 border-b border-slate-800 bg-slate-900/30 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input 
@@ -91,19 +88,19 @@ export default function UsersPage() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-500">Total Members:</span>
-            <span className="text-xs font-bold text-white">{users.length}</span>
+            <span className="text-xs font-bold text-slate-900">{users.length}</span>
           </div>
         </div>
 
         <div className="overflow-y-auto flex-1 custom-scrollbar">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+              <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
             </div>
           ) : (
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="text-slate-500 font-semibold border-b border-slate-800">
+                <tr className="text-slate-500 font-semibold border-b border-slate-200">
                   <th className="px-6 py-4">User</th>
                   <th className="px-6 py-4">Role</th>
                   <th className="px-6 py-4">Joined</th>
@@ -111,22 +108,22 @@ export default function UsersPage() {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-200">
                 {users.map((user, idx) => (
                   <motion.tr 
                     key={user._id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="hover:bg-white/5 transition-colors group"
+                    className="hover:bg-slate-100 transition-colors group"
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl gradient-blue flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-blue-500/10">
+                        <div className="w-9 h-9 rounded-xl gradient-blue flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-orange-500/10">
                           {user.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="text-sm font-bold text-white leading-none">{user.name}</p>
+                          <p className="text-sm font-bold text-slate-900 leading-none">{user.name}</p>
                           <p className="text-xs text-slate-500 mt-1">{user.email}</p>
                         </div>
                       </div>
@@ -134,7 +131,7 @@ export default function UsersPage() {
                     <td className="px-6 py-4">
                       <div className={cn(
                         'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider',
-                        user.role === 'admin' ? 'bg-rose-500/10 text-rose-400' : 'bg-blue-500/10 text-blue-400'
+                        user.role === 'admin' ? 'bg-rose-500/10 text-rose-400' : 'bg-orange-500/10 text-orange-500'
                       )}>
                         <Shield className="w-3 h-3" />
                         {user.role}
@@ -150,7 +147,7 @@ export default function UsersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-2 rounded-lg hover:bg-white/10 text-slate-500 hover:text-white transition-all">
+                      <button className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-all">
                         <MoreVertical className="w-4 h-4" />
                       </button>
                     </td>
@@ -177,9 +174,9 @@ export default function UsersPage() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl"
+              className="relative w-full max-w-md bg-white border border-slate-200 rounded-3xl p-8 shadow-2xl"
             >
-              <h2 className="text-xl font-bold text-white mb-2">Add Team Member</h2>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Add Team Member</h2>
               <p className="text-sm text-slate-500 mb-6">Create a new account for your agent</p>
 
               <form onSubmit={handleAddUser} className="space-y-4">

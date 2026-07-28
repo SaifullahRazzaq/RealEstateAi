@@ -1,0 +1,1578 @@
+{
+  "info": {
+    "_postman_id": "f2b7c1a4-9e3d-4c7a-8b21-real-estate-crm",
+    "name": "Real Estate CRM API",
+    "description": "# Real Estate CRM — API Collection\n\nFully token-based. Every protected endpoint expects:\n\n```\nAuthorization: Bearer <token>\n```\n\n## Getting started\n\n1. Set the `baseUrl` variable (default `http://localhost:3000`).\n2. Run **Auth → Login (Get Token)**. Its test script saves `token`, `tokenExpiresAt`\n   and `userId` into the collection variables automatically.\n3. Every other request inherits `Bearer {{token}}` from collection-level auth —\n   you never need to paste the token by hand.\n\n## Token lifetime\n\nTokens are valid for **exactly 1 day (86400 seconds)**. The expiry is absolute:\nit is stamped at login and is never extended by activity. Once it passes, every\nendpoint returns `401 TOKEN_EXPIRED` and the browser dashboard logs the user out.\n\nCall **Auth → Me** at any time to see `secondsRemaining` on the current token.\n\n## Error format\n\nEvery failure returns the same shape:\n\n```json\n{ \"error\": \"Human readable message\", \"code\": \"MACHINE_CODE\" }\n```\n\n| HTTP | code | meaning |\n| --- | --- | --- |\n| 400 | `VALIDATION_ERROR` | missing/invalid field, bad JSON, malformed id |\n| 401 | `NO_TOKEN` | no Authorization header and no session cookie |\n| 401 | `TOKEN_INVALID` | signature/format is wrong |\n| 401 | `TOKEN_EXPIRED` | past the 1-day window — log in again |\n| 401 | `INVALID_CREDENTIALS` | wrong email or password |\n| 403 | `FORBIDDEN` | authenticated but lacking the role |\n| 404 | `NOT_FOUND` | resource missing or owned by another company |\n| 409 | `CONFLICT` | duplicate email |\n| 500 | `INTERNAL_ERROR` | unexpected server fault |\n\nThe **Error Scenarios** folder demonstrates each one.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Warn early if the token is already past its 1-day life.",
+          "const expiry = pm.collectionVariables.get(\"tokenExpiresAt\");",
+          "if (expiry && new Date(expiry).getTime() < Date.now()) {",
+          "    console.warn(\"Token expired at \" + expiry + \" — run Auth → Login (Get Token) again.\");",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "admin@test.com",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "CHANGE_ME",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tokenExpiresAt",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "leadId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "scheduleId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth",
+      "description": "Registration and token issuance. These endpoints are public.",
+      "item": [
+        {
+          "name": "Register (new company + admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo Admin\",\n  \"email\": \"demo.admin@example.com\",\n  \"password\": \"Demo1234\",\n  \"companyName\": \"Demo Realty\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Creates a Company and its first admin user. Returns 409 CONFLICT if the email is taken."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 201 the first time; 409 on every rerun because the email is taken.",
+                  "pm.test(\"created (201) or already exists (409)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (Get Token)  ⭐ run this first",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "token"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Exchanges email + password for a 1-day bearer token. Saves it to collection variables."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) console.log(\"Body:\", pm.response.text());",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"token is returned\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.token).to.be.a(\"string\").and.not.empty;",
+                  "    pm.expect(b.tokenType).to.eql(\"Bearer\");",
+                  "});",
+                  "",
+                  "pm.test(\"token lasts exactly 1 day\", function () {",
+                  "    pm.expect(pm.response.json().expiresIn).to.eql(86400);",
+                  "});",
+                  "",
+                  "// Persist for every other request in the collection.",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set(\"token\", body.token);",
+                  "pm.collectionVariables.set(\"tokenExpiresAt\", body.expiresAt);",
+                  "pm.collectionVariables.set(\"userId\", body.user.id);",
+                  "console.log(\"Token saved. Expires at \" + body.expiresAt);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me (who am I / time left)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Returns the caller plus `secondsRemaining` on the token. Flips to 401 TOKEN_EXPIRED after 1 day."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"still inside the 1-day window\", function () {",
+                  "    pm.expect(pm.response.json().secondsRemaining).to.be.above(0);",
+                  "});",
+                  "console.log(\"Seconds left: \" + pm.response.json().secondsRemaining);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Leads",
+      "item": [
+        {
+          "name": "List leads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads?tab=all&page=1&limit=10&sort=recent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads"
+              ],
+              "query": [
+                {
+                  "key": "tab",
+                  "value": "all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sort",
+                  "value": "recent"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Query params:\n- `tab` — all | new | incontact | daily | due | followedup | pipeline | meeting | won | lost\n- `date` — YYYY-MM-DD, used with tab=daily / tab=meeting\n- `search` — matches name, phone, email or company\n- `source`, `pipeline=true`\n- `sort` — recent | oldest | value | name\n- `page`, `limit`\n\nAgents only ever see leads assigned to them; admins see the whole company."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"returns leads + pagination\", function () {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b.leads).to.be.an(\"array\");",
+                  "    pm.expect(b.pagination).to.have.property(\"total\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ahmed Khan\",\n  \"phone\": \"03001234567\",\n  \"email\": \"ahmed@example.com\",\n  \"company\": \"Khan Estates\",\n  \"source\": \"Facebook\",\n  \"dealValue\": 2500000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Only `name` and `phone` are required. Saves the new id to {{leadId}}."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () {",
+                  "    if (pm.response.code !== 201) console.log(\"Body:\", pm.response.text());",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const lead = pm.response.json().lead;",
+                  "pm.collectionVariables.set(\"leadId\", lead._id);",
+                  "pm.test(\"starts in the new status\", function () {",
+                  "    pm.expect(lead.status).to.eql(\"new\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get lead by id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/{{leadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "{{leadId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update lead details",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/{{leadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "{{leadId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dealValue\": 3000000,\n  \"isPipeline\": true,\n  \"followUpDate\": \"2026-08-05\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Editable: name, phone, email, company, source, dealValue, wonValue, followUpDate, isPipeline, meetingDate."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Move lead status → won",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/{{leadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "{{leadId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"won\",\n  \"wonValue\": 3000000,\n  \"moveNote\": \"Signed the agreement\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "A status change appends to statusHistory. Moving to won/lost clears the pipeline flag."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"status moved to won\", function () {",
+                  "    pm.expect(pm.response.json().lead.status).to.eql(\"won\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Export leads (xlsx download)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/export?tab=all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "export"
+              ],
+              "query": [
+                {
+                  "key": "tab",
+                  "value": "all"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Import leads (xlsx upload)  ⚠ attach a file first",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/import",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "import"
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Your .xlsx or .csv of leads"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"imported (201), or 400 telling you to attach a file\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 400) {",
+                  "    console.warn(\"Attach an .xlsx in the Body tab to actually import.\");",
+                  "} else {",
+                  "    const b = pm.response.json();",
+                  "    console.log(\"Imported \" + b.imported + \", skipped \" + b.skipped);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Comments & Calls",
+      "item": [
+        {
+          "name": "List comments for a lead",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/{{leadId}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "{{leadId}}",
+                "comments"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add comment (and log a call)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/{{leadId}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "{{leadId}}",
+                "comments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"comment\": \"Client asked for a site visit on Friday.\",\n  \"logCall\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Set `logCall: true` to also record a Call row, which is what the Reports page counts."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () {",
+                  "    if (pm.response.code !== 201) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(201);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Schedule",
+      "item": [
+        {
+          "name": "List schedules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule?scope=upcoming",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule"
+              ],
+              "query": [
+                {
+                  "key": "scope",
+                  "value": "upcoming"
+                },
+                {
+                  "key": "leadId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "start",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "end",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Filters: `leadId`, `status`, `scope=upcoming`, or a `start`+`end` date range."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leadId\": \"{{leadId}}\",\n  \"type\": \"meeting\",\n  \"title\": \"Site visit — DHA Phase 6\",\n  \"scheduledAt\": \"2026-08-01T10:00:00.000Z\",\n  \"durationMins\": 45,\n  \"location\": \"DHA Phase 6, Lahore\",\n  \"notes\": \"Bring the floor plans.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Creating a `meeting` also stamps meetingDate on the lead and moves it into the meeting status."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () {",
+                  "    if (pm.response.code !== 201) console.log(\"Body:\", pm.response.text());",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.collectionVariables.set(\"scheduleId\", pm.response.json().schedule._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update schedule",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/{{scheduleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "{{scheduleId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\",\n  \"notes\": \"Client visited, very interested.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete schedule",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedule/{{scheduleId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "schedule",
+                "{{scheduleId}}"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Dashboard & Reports",
+      "item": [
+        {
+          "name": "Dashboard KPIs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard?start=2026-07-01&end=2026-07-27",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2026-07-01"
+                },
+                {
+                  "key": "end",
+                  "value": "2026-07-27"
+                }
+              ]
+            },
+            "description": "Returns kpis, timeseries, statusDistribution, sourceDistribution, topDeals, recentWon and upcomingMeetings."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"kpis are present\", function () {",
+                  "    pm.expect(pm.response.json().kpis).to.have.property(\"totalLeads\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reports (call activity)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/reports?start=2026-07-01&end=2026-07-27",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2026-07-01"
+                },
+                {
+                  "key": "end",
+                  "value": "2026-07-27"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Users (admin only)",
+      "item": [
+        {
+          "name": "List team members",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "description": "Returns 403 FORBIDDEN for the agent role."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create agent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sara Ahmed\",\n  \"email\": \"sara.agent@example.com\",\n  \"password\": \"Agent1234\",\n  \"role\": \"agent\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 201 the first time; 409 on every rerun because the email is taken.",
+                  "pm.test(\"created (201) or already exists (409)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "7. Error Scenarios",
+      "description": "Each request here proves one row of the error table. Run the whole folder to verify error handling end to end.",
+      "item": [
+        {
+          "name": "401 NO_TOKEN — no Authorization header",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401\", function () {",
+                  "    if (pm.response.code !== 401) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"error payload has message + code\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"error\");",
+                  "    pm.expect(body).to.have.property(\"code\");",
+                  "});",
+                  "",
+                  "pm.test(\"code is NO_TOKEN\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"NO_TOKEN\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "401 TOKEN_INVALID — malformed token",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer not.a.real.token"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401\", function () {",
+                  "    if (pm.response.code !== 401) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"error payload has message + code\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"error\");",
+                  "    pm.expect(body).to.have.property(\"code\");",
+                  "});",
+                  "",
+                  "pm.test(\"code is TOKEN_INVALID\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"TOKEN_INVALID\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "401 TOKEN_EXPIRED — past the 1-day window",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{expiredToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Set an `expiredToken` variable to a token whose `exp` has passed.\n\nTo see this for real without waiting a day: log in, then temporarily lower\nTOKEN_TTL_SECONDS in src/lib/jwt.ts to e.g. 60, restart, log in again and wait a minute."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401\", function () {",
+                  "    if (pm.response.code !== 401) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"error payload has message + code\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"error\");",
+                  "    pm.expect(body).to.have.property(\"code\");",
+                  "});",
+                  "",
+                  "pm.test(\"code is TOKEN_EXPIRED\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"TOKEN_EXPIRED\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "401 INVALID_CREDENTIALS — wrong password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "token"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"definitely-wrong\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 401\", function () {",
+                  "    if (pm.response.code !== 401) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(401);",
+                  "});",
+                  "",
+                  "pm.test(\"error payload has message + code\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"error\");",
+                  "    pm.expect(body).to.have.property(\"code\");",
+                  "});",
+                  "",
+                  "pm.test(\"code is INVALID_CREDENTIALS\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"INVALID_CREDENTIALS\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 VALIDATION_ERROR — missing required field",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Missing the phone number\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () {",
+                  "    if (pm.response.code !== 400) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"error payload has message + code\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"error\");",
+                  "    pm.expect(body).to.have.property(\"code\");",
+                  "});",
+                  "",
+                  "pm.test(\"code is VALIDATION_ERROR\", function () {",
+                  "    pm.expect(pm.response.json().code).to.eql(\"VALIDATION_ERROR\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 VALIDATION_ERROR — malformed id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/not-a-valid-object-id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "not-a-valid-object-id"
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () {",
+                  "    if (pm.response.code !== 400) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"error payload has message + code\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"error\");",
+                  "    pm.expect(body).to.have.property(\"code\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 VALIDATION_ERROR — invalid status value",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/{{leadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "{{leadId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"banana\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", function () {",
+                  "    if (pm.response.code !== 400) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"error payload has message + code\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"error\");",
+                  "    pm.expect(body).to.have.property(\"code\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 NOT_FOUND — lead from another company",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/000000000000000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "000000000000000000000000"
+              ]
+            },
+            "description": "Cross-tenant reads return 404 rather than 403, so ids from other companies cannot be probed."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", function () {",
+                  "    if (pm.response.code !== 404) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"error payload has message + code\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"error\");",
+                  "    pm.expect(body).to.have.property(\"code\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "409 CONFLICT — duplicate email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Duplicate\",\n  \"email\": \"{{email}}\",\n  \"password\": \"Demo1234\",\n  \"companyName\": \"Duplicate Co\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 409\", function () {",
+                  "    if (pm.response.code !== 409) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test(\"error payload has message + code\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"error\");",
+                  "    pm.expect(body).to.have.property(\"code\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "8. Cleanup",
+      "description": "Runs last so the lead created earlier stays alive for the Comments, Schedule and Error Scenario folders.",
+      "item": [
+        {
+          "name": "Delete lead (admin only)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leads/{{leadId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leads",
+                "{{leadId}}"
+              ]
+            },
+            "description": "Returns 403 FORBIDDEN for the agent role. Deletes the lead created by this run."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", function () {",
+                  "    if (pm.response.code !== 200) {",
+                  "        console.log(\"Body:\", pm.response.text());",
+                  "    }",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

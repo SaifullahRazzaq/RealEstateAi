@@ -17,7 +17,7 @@ export default function WonClientsPage() {
             <Trophy className="w-4 h-4 text-green-400" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Won Clients</p>
+            <p className="text-sm font-semibold text-slate-900">Won Clients</p>
             <p className="text-xs text-slate-500">Successfully closed deals</p>
           </div>
         </div>

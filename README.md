@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Real Estate CRM
 
-## Getting Started
+Multi-tenant CRM for real estate teams — lead pipeline, follow-ups, meetings,
+call logging and reporting.
 
-First, run the development server:
+Split into two independently deployable apps:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+apps/
+├── web/   Next.js 16 frontend  → Vercel
+└── api/   Express 5 + MongoDB  → VPS
+postman/   API collection (30 requests, 51 assertions)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The frontend holds no secrets and talks to nothing but the API. The API is
+stateless: every request authenticates with a bearer token, so there are no
+sessions or cookies crossing the boundary.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Running locally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install          # installs both workspaces
 
-## Learn More
+cp apps/api/.env.example apps/api/.env      # fill in MONGODB_URI + JWT_SECRET
+cp apps/web/.env.example apps/web/.env.local
 
-To learn more about Next.js, take a look at the following resources:
+npm run dev:api      # http://localhost:4000
+npm run dev:web      # http://localhost:3000
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+First run needs an account:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+cd apps/api
+npm run create-admin
+npm run seed          # optional demo leads
+```
 
-## Deploy on Vercel
+## Auth
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`POST /api/auth/token` exchanges email + password for a JWT valid for exactly
+**1 day**. The expiry is absolute — stamped at login, never extended by activity.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The browser keeps it in a `crm_token` cookie so `proxy.ts` can guard dashboard
+routes server-side before rendering. Client code reads it to build the
+`Authorization: Bearer <token>` header. When it expires, three things fire: the
+API returns `401 TOKEN_EXPIRED`, `proxy.ts` redirects to `/auth/login`, and
+`AuthProvider` logs the user out at the exact expiry instant.
+
+The cookie is deliberately not httpOnly — client JS must read it. That carries
+the same XSS exposure as localStorage would; the real authorisation boundary is
+the API, which verifies the signature on every request.
+
+## Errors
+
+Every API failure has the same shape:
+
+```json
+{ "error": "Human readable message", "code": "MACHINE_CODE" }
+```
+
+`VALIDATION_ERROR` · `NO_TOKEN` · `TOKEN_INVALID` · `TOKEN_EXPIRED` ·
+`INVALID_CREDENTIALS` · `FORBIDDEN` · `NOT_FOUND` · `CONFLICT` ·
+`INTERNAL_ERROR`
+
+## Scripts
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev:web` / `dev:api` | run one app in watch mode |
+| `npm run build` | build both |
+| `npm run typecheck` | typecheck both |
+| `npm run lint` | lint the frontend |
+
+## Testing the API
+
+```bash
+npx newman run postman/real-estate-crm.postman_collection.json \
+  --env-var baseUrl=http://localhost:4000 \
+  --env-var email=you@example.com \
+  --env-var password=...
+```
+
+## Deploying
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) — Vercel setup, VPS with pm2 or Docker, nginx
+TLS, and the CORS configuration that connects the two.

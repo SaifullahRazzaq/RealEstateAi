@@ -1,29 +1,27 @@
 import mongoose from 'mongoose';
+import { env } from '../config/env.js';
 
-const MONGODB_URI = process.env.MONGODB_URI!;
-
-if (!MONGODB_URI) {
-  throw new Error('Please define MONGODB_URI in .env.local');
-}
-
-declare global {
-  // eslint-disable-next-line no-var
-  var mongoose: { conn: typeof import('mongoose') | null; promise: Promise<typeof import('mongoose')> | null };
-}
-
-let cached = global.mongoose;
-
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
-}
-
+/**
+ * The API is a long-lived process, so one connection at boot is all it needs —
+ * no global caching dance like the serverless version required.
+ */
 export async function connectDB() {
-  if (cached.conn) return cached.conn;
+  mongoose.set('strictQuery', true);
 
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI, { bufferCommands: false }).then((m) => m);
-  }
+  mongoose.connection.on('error', (err) => {
+    console.error('[api] mongo error:', err.message);
+  });
+  mongoose.connection.on('disconnected', () => {
+    console.warn('[api] mongo disconnected');
+  });
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  await mongoose.connect(env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 10000,
+  });
+
+  return mongoose;
+}
+
+export async function disconnectDB() {
+  await mongoose.disconnect();
 }

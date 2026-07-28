@@ -1,12 +1,35 @@
 import { create } from 'zustand';
 
-export type TabType = 'new' | 'daily' | 'lost' | 'won' | 'pipeline' | 'meeting' | 'report';
+export type LeadStatus =
+  | 'new'
+  | 'incontact'
+  | 'followedup'
+  | 'due'
+  | 'meeting'
+  | 'won'
+  | 'lost';
+
+export type TabType =
+  | 'dashboard'
+  | 'new'
+  | 'incontact'
+  | 'daily'
+  | 'pipeline'
+  | 'meeting'
+  | 'lost'
+  | 'won'
+  | 'report';
 
 export interface Lead {
   _id: string;
   name: string;
   phone: string;
-  status: 'new' | 'daily' | 'lost' | 'won';
+  email?: string;
+  company?: string;
+  source?: string;
+  status: LeadStatus;
+  dealValue: number;
+  wonValue: number;
   followUpDate?: string;
   isPipeline: boolean;
   meetingDate?: string;
@@ -41,6 +64,8 @@ interface CRMState {
   setIsImporting: (v: boolean) => void;
   drawerOpen: boolean;
   setDrawerOpen: (v: boolean) => void;
+  refreshKey: number;
+  triggerRefresh: () => void;
 }
 
 export const useCRMStore = create<CRMState>((set) => ({
@@ -60,4 +85,17 @@ export const useCRMStore = create<CRMState>((set) => ({
   setIsImporting: (isImporting) => set({ isImporting }),
   drawerOpen: false,
   setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
+  refreshKey: 0,
+  triggerRefresh: () => set((s) => ({ refreshKey: s.refreshKey + 1 })),
 }));
+
+// Shared status metadata used across the UI.
+export const STATUS_META: Record<LeadStatus, { label: string; color: string; badge: string }> = {
+  new: { label: 'New', color: '#3b82f6', badge: 'badge-new' },
+  incontact: { label: 'In Contact', color: '#06b6d4', badge: 'badge-incontact' },
+  followedup: { label: 'Followed Up', color: '#8b5cf6', badge: 'badge-followedup' },
+  due: { label: 'Due', color: '#f59e0b', badge: 'badge-due' },
+  meeting: { label: 'Meeting', color: '#eab308', badge: 'badge-meeting' },
+  won: { label: 'Won', color: '#10b981', badge: 'badge-won' },
+  lost: { label: 'Lost', color: '#ef4444', badge: 'badge-lost' },
+};

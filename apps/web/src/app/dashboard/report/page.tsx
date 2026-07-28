@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -11,7 +12,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+const COLORS = ['#f9622a', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 interface Stats {
   totalLeads: number;
@@ -31,11 +32,39 @@ interface DistributionData {
   value: number;
 }
 
+/** Period-over-period change, already formatted by the API (e.g. "+12.5%"). */
+interface Trends {
+  totalCalls: string;
+  wonLeads: string;
+  lostLeads: string;
+  conversionRate: string;
+}
+
+interface AgentPerformance {
+  id: string;
+  name: string;
+  calls: number;
+  won: number;
+  lost: number;
+  conversion: number;
+  growth: string;
+}
+
+interface ReportResponse {
+  activity: ActivityData[];
+  distribution: DistributionData[];
+  stats: Stats | null;
+  trends: Trends | null;
+  agents: AgentPerformance[];
+}
+
 export default function ReportPage() {
   const [mounted, setMounted] = useState(false);
   const [activity, setActivity] = useState<ActivityData[]>([]);
   const [distribution, setDistribution] = useState<DistributionData[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [trends, setTrends] = useState<Trends | null>(null);
+  const [agents, setAgents] = useState<AgentPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
@@ -49,11 +78,12 @@ export default function ReportPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/reports?start=${startDate}&end=${endDate}`);
-      const data = await res.json();
+      const data = await apiFetch<ReportResponse>(`/api/reports?start=${startDate}&end=${endDate}`);
       setActivity(data.activity || []);
       setDistribution(data.distribution || []);
       setStats(data.stats || null);
+      setTrends(data.trends || null);
+      setAgents(data.agents || []);
     } catch {
       // error handling
     } finally {
@@ -72,25 +102,25 @@ export default function ReportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Performance Analytics</h1>
+          <h1 className="text-xl font-bold text-slate-900">Performance Analytics</h1>
           <p className="text-sm text-slate-500 mt-0.5">Track your business growth and agent activity</p>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800">
+        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
           <input 
             type="date" 
             value={startDate} 
             onChange={(e) => setStartDate(e.target.value)} 
-            className="bg-transparent border-none text-xs text-slate-300 focus:ring-0 cursor-pointer"
-            style={{ colorScheme: 'dark' }}
+            className="bg-transparent border-none text-xs text-slate-600 focus:ring-0 cursor-pointer"
+            style={{ colorScheme: 'light' }}
           />
-          <span className="text-slate-700">|</span>
+          <span className="text-slate-400">|</span>
           <input 
             type="date" 
             value={endDate} 
             onChange={(e) => setEndDate(e.target.value)} 
-            className="bg-transparent border-none text-xs text-slate-300 focus:ring-0 cursor-pointer"
-            style={{ colorScheme: 'dark' }}
+            className="bg-transparent border-none text-xs text-slate-600 focus:ring-0 cursor-pointer"
+            style={{ colorScheme: 'light' }}
           />
         </div>
       </div>
@@ -98,17 +128,17 @@ export default function ReportPage() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Calls', value: stats?.totalCalls, icon: Phone, color: 'text-blue-400', bg: 'bg-blue-400/10', trend: '+12%' },
-          { label: 'Won Deals', value: stats?.wonLeads, icon: Target, color: 'text-green-400', bg: 'bg-green-400/10', trend: '+5%' },
-          { label: 'Lost Leads', value: stats?.lostLeads, icon: ArrowDownRight, color: 'text-red-400', bg: 'bg-red-400/10', trend: '-2%' },
-          { label: 'Conv. Rate', value: `${stats?.conversionRate}%`, icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-400/10', trend: '+3%' },
+          { label: 'Total Calls', value: stats?.totalCalls ?? '—', icon: Phone, color: 'text-orange-500', bg: 'bg-orange-500/10', trend: trends?.totalCalls ?? '0%' },
+          { label: 'Won Deals', value: stats?.wonLeads ?? '—', icon: Target, color: 'text-green-400', bg: 'bg-green-400/10', trend: trends?.wonLeads ?? '0%' },
+          { label: 'Lost Leads', value: stats?.lostLeads ?? '—', icon: ArrowDownRight, color: 'text-red-400', bg: 'bg-red-400/10', trend: trends?.lostLeads ?? '0%' },
+          { label: 'Conv. Rate', value: stats ? `${stats.conversionRate}%` : '—', icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-400/10', trend: trends?.conversionRate ?? '0%' },
         ].map((item, idx) => (
           <motion.div
             key={item.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="card p-5 group hover:border-slate-700 transition-all cursor-default"
+            className="card p-5 group hover:border-slate-200 transition-all cursor-default"
           >
             <div className="flex items-center justify-between mb-3">
               <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center transition-transform group-hover:scale-110`}>
@@ -118,7 +148,7 @@ export default function ReportPage() {
                 {item.trend}
               </span>
             </div>
-            <p className="text-2xl font-bold text-white mb-0.5">{loading ? '...' : item.value}</p>
+            <p className="text-2xl font-bold text-slate-900 mb-0.5">{loading ? '...' : item.value}</p>
             <p className="text-xs text-slate-500 font-medium">{item.label}</p>
           </motion.div>
         ))}
@@ -135,10 +165,10 @@ export default function ReportPage() {
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                <BarChart3 className="w-4 h-4 text-blue-400" />
+              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-orange-500" />
               </div>
-              <h3 className="text-sm font-bold text-white">Call Activity</h3>
+              <h3 className="text-sm font-bold text-slate-900">Call Activity</h3>
             </div>
           </div>
           
@@ -147,11 +177,11 @@ export default function ReportPage() {
               <AreaChart data={activity}>
                 <defs>
                   <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#f9622a" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#f9622a" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" vertical={false} />
                 <XAxis 
                   dataKey="date" 
                   stroke="#64748b" 
@@ -162,10 +192,10 @@ export default function ReportPage() {
                 />
                 <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', fontSize: '12px' }}
-                  itemStyle={{ color: '#fff' }}
+                  contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', fontSize: '12px' }}
+                  itemStyle={{ color: '#111827' }}
                 />
-                <Area type="monotone" dataKey="calls" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorCalls)" />
+                <Area type="monotone" dataKey="calls" stroke="#f9622a" strokeWidth={2} fillOpacity={1} fill="url(#colorCalls)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -182,7 +212,7 @@ export default function ReportPage() {
             <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
               <PieIcon className="w-4 h-4 text-purple-400" />
             </div>
-            <h3 className="text-sm font-bold text-white">Lead Distribution</h3>
+            <h3 className="text-sm font-bold text-slate-900">Lead Distribution</h3>
           </div>
 
           <div className="flex-1 w-full relative">
@@ -202,14 +232,14 @@ export default function ReportPage() {
                   ))}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '12px', fontSize: '12px' }}
                 />
               </PieChart>
             </ResponsiveContainer>
             
             {/* Center Stats */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-              <p className="text-xl font-bold text-white">{stats?.totalLeads}</p>
+              <p className="text-xl font-bold text-slate-900">{stats?.totalLeads}</p>
               <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Total</p>
             </div>
           </div>
@@ -226,50 +256,57 @@ export default function ReportPage() {
         </motion.div>
       </div>
 
-      {/* Agents Performance Table (Placeholder for now) */}
-      <motion.div 
+      {/* Agents Performance Table — live per-agent numbers for the selected range */}
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
         className="card overflow-hidden"
       >
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-slate-400" />
-            <h3 className="text-sm font-bold text-white">Top Performing Agents</h3>
+            <h3 className="text-sm font-bold text-slate-900">Top Performing Agents</h3>
           </div>
-          <button className="text-[10px] font-bold text-blue-400 hover:text-blue-300 uppercase tracking-wider">View All</button>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{agents.length} in team</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-slate-900/50 text-slate-500 font-semibold">
+              <tr className="bg-slate-50 text-slate-500 font-semibold">
                 <th className="px-6 py-3">Agent Name</th>
                 <th className="px-6 py-3 text-center">Calls</th>
+                <th className="px-6 py-3 text-center">Won</th>
                 <th className="px-6 py-3 text-center">Conversion</th>
                 <th className="px-6 py-3 text-right">Growth</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
-              {[
-                { name: 'Ahmed Khan', calls: 450, conv: '12.5%', growth: '+8%' },
-                { name: 'Sara Ahmed', calls: 380, conv: '11.2%', growth: '+15%' },
-                { name: 'Zubair Sheikh', calls: 310, conv: '9.8%', growth: '-2%' },
-              ].map((agent) => (
-                <tr key={agent.name} className="hover:bg-white/5 transition-colors">
+            <tbody className="divide-y divide-slate-200">
+              {agents.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400">
+                    No agent activity in this period
+                  </td>
+                </tr>
+              )}
+              {agents.map((agent) => (
+                <tr key={agent.id} className="hover:bg-slate-100 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full gradient-blue flex items-center justify-center text-[10px] font-bold text-white">
-                        {agent.name.charAt(0)}
+                        {agent.name.charAt(0).toUpperCase()}
                       </div>
-                      <span className="text-slate-200 font-medium">{agent.name}</span>
+                      <span className="text-slate-900 font-medium">{agent.name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-center text-slate-400 font-medium">{agent.calls}</td>
+                  <td className="px-6 py-4 text-center text-slate-500 font-medium">{agent.calls}</td>
+                  <td className="px-6 py-4 text-center text-slate-500 font-medium">{agent.won}</td>
                   <td className="px-6 py-4 text-center">
-                    <span className="px-2 py-1 rounded-full bg-blue-500/10 text-blue-400 font-bold">{agent.conv}</span>
+                    <span className="px-2 py-1 rounded-full bg-orange-500/10 text-orange-500 font-bold">{agent.conversion}%</span>
                   </td>
-                  <td className="px-6 py-4 text-right font-bold text-green-500">{agent.growth}</td>
+                  <td className={`px-6 py-4 text-right font-bold ${agent.growth.startsWith('-') ? 'text-red-500' : 'text-green-500'}`}>
+                    {agent.growth}
+                  </td>
                 </tr>
               ))}
             </tbody>

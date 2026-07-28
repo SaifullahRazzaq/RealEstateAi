@@ -12,7 +12,7 @@ export default function PipelinePage() {
           <TrendingUp className="w-4 h-4 text-purple-400" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white">Pipeline — Hot Prospects</p>
+          <p className="text-sm font-semibold text-slate-900">Pipeline — Hot Prospects</p>
           <p className="text-xs text-slate-500">High-potential leads tagged with <Star className="w-3 h-3 inline text-amber-400 fill-amber-400" /></p>
         </div>
       </div>

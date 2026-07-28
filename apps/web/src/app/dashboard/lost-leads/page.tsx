@@ -17,7 +17,7 @@ export default function LostLeadsPage() {
             <XCircle className="w-4 h-4 text-red-400" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Lost Leads</p>
+            <p className="text-sm font-semibold text-slate-900">Lost Leads</p>
             <p className="text-xs text-slate-500">Leads marked as not interested</p>
           </div>
         </div>

@@ -14,17 +14,18 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={inter.className} suppressHydrationWarning>
         <Providers>
           {children}
           <Toaster
             position="top-right"
             toastOptions={{
               style: {
-                background: '#1e293b',
-                color: '#f1f5f9',
-                border: '1px solid #334155',
+                background: '#ffffff',
+                color: '#17181c',
+                border: '1px solid #ececef',
                 borderRadius: '12px',
+                boxShadow: '0 8px 24px rgba(16,24,40,0.12)',
               },
             }}
           />

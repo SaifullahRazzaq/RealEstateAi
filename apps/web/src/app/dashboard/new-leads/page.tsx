@@ -14,11 +14,11 @@ export default function NewLeadsPage() {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)' }}>
-            <Users className="w-4 h-4 text-blue-400" />
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,98,42,0.1)', border: '1px solid rgba(249,98,42,0.2)' }}>
+            <Users className="w-4 h-4 text-orange-500" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">New Leads</p>
+            <p className="text-sm font-semibold text-slate-900">New Leads</p>
             <p className="text-xs text-slate-500">Fresh incoming contacts</p>
           </div>
         </div>

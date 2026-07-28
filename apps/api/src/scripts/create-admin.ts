@@ -1,4 +1,3 @@
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import bcrypt from 'bcryptjs';
@@ -9,7 +8,6 @@ const __dirname = path.dirname(__filename);
 
 // Load env vars FIRST
 const envPath = path.resolve(__dirname, '../../.env.local');
-dotenv.config({ path: envPath });
 
 import { connectDB } from '../lib/mongoose.js';
 import { User } from '../models/User.js';

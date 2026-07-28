@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LeadList } from '@/components/dashboard/LeadList';
 import { LeadDrawer } from '@/components/dashboard/LeadDrawer';
-import { Video } from 'lucide-react';
+import { Loader2, Video } from 'lucide-react';
 
 function getTodayStr() {
   return new Date().toISOString().split('T')[0];
@@ -19,8 +19,25 @@ function getWeekendDates() {
 }
 
 export default function MeetingPage() {
+  // The clock is only read after mount: getTodayStr()/getWeekendDates() depend on
+  // the local timezone, so rendering them on the server produces different markup
+  // than the browser and breaks hydration.
+  const [mounted, setMounted] = useState(false);
   const [filter, setFilter] = useState<'today' | 'weekend' | 'custom'>('today');
-  const [customDate, setCustomDate] = useState(getTodayStr());
+  const [customDate, setCustomDate] = useState('');
+
+  useEffect(() => {
+    setCustomDate(getTodayStr());
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+      </div>
+    );
+  }
 
   const activeDate = filter === 'today' ? getTodayStr() : filter === 'weekend' ? getWeekendDates() : customDate;
 
@@ -32,7 +49,7 @@ export default function MeetingPage() {
             <Video className="w-4 h-4 text-cyan-400" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Meetings</p>
+            <p className="text-sm font-semibold text-slate-900">Meetings</p>
             <p className="text-xs text-slate-500">Scheduled client meetings</p>
           </div>
         </div>
@@ -62,7 +79,7 @@ export default function MeetingPage() {
             value={customDate}
             onChange={(e) => setCustomDate(e.target.value)}
             className="input-field w-auto text-xs"
-            style={{ colorScheme: 'dark' }}
+            style={{ colorScheme: 'light' }}
           />
         )}
       </div>

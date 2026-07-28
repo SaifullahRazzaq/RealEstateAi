@@ -1,5 +1,6 @@
 'use client';
 
+import { apiFetch, apiFetchBlob, ApiRequestError } from '@/lib/api';
 import { useRef, useState } from 'react';
 import { Upload, Download, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -24,17 +25,14 @@ export function ImportExportBar({ tab, onImported }: ImportExportBarProps) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch('/api/leads/import', { method: 'POST', body: formData });
-      const data = await res.json();
-
-      if (!res.ok) {
-        toast.error(data.error || 'Import failed');
-      } else {
-        toast.success(`✅ Imported ${data.imported} leads!`);
-        onImported?.();
-      }
-    } catch {
-      toast.error('Import failed');
+      const data = await apiFetch<{ imported: number; skipped: number }>('/api/leads/import', {
+        method: 'POST',
+        body: formData,
+      });
+      toast.success(`✅ Imported ${data.imported} leads!`);
+      onImported?.();
+    } catch (err) {
+      toast.error(err instanceof ApiRequestError ? err.message : 'Import failed');
     } finally {
       setImporting(false);
       if (fileRef.current) fileRef.current.value = '';
@@ -44,10 +42,7 @@ export function ImportExportBar({ tab, onImported }: ImportExportBarProps) {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const res = await fetch(`/api/leads/export?tab=${tab}`);
-      if (!res.ok) throw new Error('Export failed');
-
-      const blob = await res.blob();
+      const blob = await apiFetchBlob(`/api/leads/export?tab=${tab}`);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
