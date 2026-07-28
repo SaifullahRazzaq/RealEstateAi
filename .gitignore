@@ -38,6 +38,9 @@ yarn-error.log*
 .env.*
 !.env.example
 
+# personal notes — credentials, scratch
+*.local.md
+
 # vercel
 .vercel
 

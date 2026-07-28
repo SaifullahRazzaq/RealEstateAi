@@ -30,6 +30,11 @@ export const env = {
    * Comma-separated list of browser origins allowed to call this API.
    * Must include the Vercel deployment URL, e.g.
    *   CORS_ORIGINS=https://crm.example.com,https://crm-staging.vercel.app
+   *
+   * An entry may use `*` as a wildcard for one or more subdomain labels, which
+   * is what makes Vercel preview deployments usable — every branch gets a fresh
+   * hostname, so listing them individually is impossible:
+   *   CORS_ORIGINS=https://*.vercel.app
    */
   CORS_ORIGINS: (process.env.CORS_ORIGINS || 'http://localhost:3000')
     .split(',')

@@ -16,6 +16,25 @@ import { reportsRouter } from './routes/reports.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { integrationsRouter } from './routes/integrations.js';
 
+/**
+ * Turns a CORS_ORIGINS entry into a matcher. Plain entries compare exactly;
+ * entries containing `*` become an anchored regex where the wildcard stands in
+ * for one or more subdomain labels (`https://*.vercel.app` matches
+ * `https://crm-git-main-acme.vercel.app` but never `https://evil.com`).
+ */
+function originMatcher(pattern: string): (origin: string) => boolean {
+  if (!pattern.includes('*')) return (origin) => origin === pattern;
+
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^.]+(?:\\.[^.]+)*');
+  const re = new RegExp(`^${escaped}$`);
+  return (origin) => re.test(origin);
+}
+
+const allowedOrigin = (() => {
+  const matchers = env.CORS_ORIGINS.map(originMatcher);
+  return (origin: string) => matchers.some((match) => match(origin));
+})();
+
 const app = express();
 
 // Behind nginx/Caddy on the VPS, so client IPs and protocol come from headers.
@@ -27,7 +46,7 @@ app.use(
     origin(origin, callback) {
       // Server-to-server calls and curl send no Origin — always allow those.
       if (!origin) return callback(null, true);
-      if (env.CORS_ORIGINS.includes(origin)) return callback(null, true);
+      if (allowedOrigin(origin)) return callback(null, true);
 
       // Deny by omitting the header rather than throwing: the browser blocks the
       // response itself, and an unknown origin shouldn't surface as a 500.

@@ -33,7 +33,45 @@ accepted by production.
 
 ---
 
-## Backend — VPS
+## Backend — Railway (recommended)
+
+Railway builds `apps/api/Dockerfile` with the **repo root** as context, which is
+what that Dockerfile expects — the workspace lockfile has to be in scope.
+`railway.json` at the repo root already declares this, so there is nothing to
+configure in the dashboard beyond environment variables.
+
+1. railway.app → **New Project → Deploy from GitHub repo** → pick this repo.
+   Leave the root directory alone; `railway.json` points at the Dockerfile.
+2. **Variables** tab — add every key from `apps/api/.env.example` except `PORT`
+   (Railway injects its own, and the app reads it):
+
+   | Variable | Value |
+   | --- | --- |
+   | `NODE_ENV` | `production` |
+   | `APP_ENV` | `production` |
+   | `MONGODB_URI` | your Atlas connection string |
+   | `JWT_SECRET` | fresh value from `openssl rand -base64 32` |
+   | `TOKEN_TTL_SECONDS` | `86400` |
+   | `CORS_ORIGINS` | your Vercel URL — see below |
+
+3. **Settings → Networking → Generate Domain**. You get
+   `https://<something>.up.railway.app`. That is the value the frontend needs.
+
+MongoDB Atlas will refuse the connection until Railway's egress is allowed:
+**Atlas → Network Access → Add IP Address → `0.0.0.0/0`** (Railway has no static
+egress IP on the starter plans; the connection is still authenticated by the
+credentials in `MONGODB_URI`).
+
+Health check: Railway polls `/health`, already declared in `railway.json`. A
+deploy that goes "Active" but never healthy is almost always Mongo — check the
+deploy logs for `[api] mongo connected`.
+
+Render works the same way: **New → Web Service → Docker**, Dockerfile path
+`apps/api/Dockerfile`, Docker build context `.` (repo root), same variables.
+
+---
+
+## Backend — VPS (alternative)
 
 ### 1. Prepare
 
@@ -150,15 +188,23 @@ runtime.
 
 ### After the first deploy
 
-Copy the real Vercel URL into the API's `CORS_ORIGINS` and restart:
+Copy the real Vercel URL into the API's `CORS_ORIGINS`, then restart the API
+(Railway redeploys on its own when a variable changes; on a VPS run
+`pm2 restart crm-api`).
 
-```bash
-pm2 restart crm-api
+Preview deployments get a new URL per branch, so list them with a wildcard —
+`CORS_ORIGINS` accepts `*` for subdomain labels:
+
+```
+CORS_ORIGINS=https://crm.yourdomain.com,https://*.vercel.app
 ```
 
-Preview deployments get a new URL per branch. If you want those to work, either
-add a wildcard-free list of the URLs you care about, or point previews at a
-staging API whose `CORS_ORIGINS` includes your `*.vercel.app` project domain.
+The wildcard spans subdomain labels only; `https://*.vercel.app` matches
+`https://crm-git-main-acme.vercel.app` but never `https://evil.com` or
+`https://x.vercel.app.evil.com`. Note that it does trust *every* project on
+`vercel.app`, not just yours — fine while the bearer token is the real
+authorisation boundary, but pin the exact origin for production if you'd rather
+not.
 
 ---
 
