@@ -22,13 +22,7 @@ export const env = {
   /** Free-form label surfaced on /health so you can tell staging from prod at a glance. */
   APP_ENV: process.env.APP_ENV || NODE_ENV,
 
-  /**
-   * Vercel sets VERCEL=1 in both build and runtime. Used to size the Mongo pool
-   * for per-invocation instances; ignored by the container/VPS path.
-   */
-  IS_SERVERLESS: process.env.VERCEL === '1',
-
-  /** Ignored on Vercel, which routes to a function rather than a port. */
+  /** On Vercel this only names the internal port it routes to. */
   PORT: Number(process.env.PORT || 4000),
   MONGODB_URI: required('MONGODB_URI'),
   JWT_SECRET: required('JWT_SECRET'),

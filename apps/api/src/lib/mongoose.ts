@@ -2,13 +2,11 @@ import mongoose from 'mongoose';
 import { env } from '../config/env.js';
 
 /**
- * A serverless function is invoked concurrently and its module scope survives
- * between warm invocations, so the connection *promise* is cached on
- * `globalThis` rather than awaited per call. Without this, every invocation
- * opens its own connection and Atlas hits its connection cap under mild load.
- *
- * Caching is harmless for the long-lived server too: `index.ts` calls this once
- * at boot and the cache is simply never consulted again.
+ * `app.ts` calls this on every request, so it has to be idempotent: the
+ * connection *promise* is cached and re-awaited rather than a new connection
+ * opened. It lives on `globalThis` so a reloaded module — dev watch mode, or a
+ * platform that re-evaluates the entry — reuses the existing connection instead
+ * of leaking one per reload.
  */
 declare global {
   // eslint-disable-next-line no-var
@@ -27,9 +25,6 @@ function openConnection(): Promise<typeof mongoose> {
 
   return mongoose.connect(env.MONGODB_URI, {
     serverSelectionTimeoutMS: 10000,
-    // A function instance handles one request at a time, so a large pool is
-    // wasted sockets multiplied by however many instances are warm.
-    maxPoolSize: env.IS_SERVERLESS ? 5 : 10,
   });
 }
 

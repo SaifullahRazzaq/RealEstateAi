@@ -31,4 +31,4 @@ EXPOSE 4000
 
 # Env comes from `docker run --env-file apps/api/.env` or your orchestrator,
 # so there is no --env-file flag here.
-CMD ["node", "apps/api/dist/index.js"]
+CMD ["node", "apps/api/dist/server.js"]

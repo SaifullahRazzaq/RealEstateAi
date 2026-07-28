@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 
 import { env } from './config/env.js';
+import { connectDB } from './lib/mongoose.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 import { authRouter } from './routes/auth.js';
@@ -35,9 +36,8 @@ const allowedOrigin = (() => {
 })();
 
 /**
- * Builds the Express app with no side effects — no DB connection, no listening
- * socket. Both entry points import it: `index.ts` binds it to a port for the
- * container, `serverless.ts` hands it a single request per invocation.
+ * The Express app, built with no listening socket of its own so that binding a
+ * port stays the sole job of `server.ts`.
  */
 export const app = express();
 
@@ -77,6 +77,25 @@ app.get('/health', (_req, res) => {
     uptime: Math.round(process.uptime()),
     timestamp: new Date().toISOString(),
   });
+});
+
+/**
+ * Every route below needs mongoose connected, and `server.ts` cannot await that
+ * before listening without breaking Vercel's server detection — so the wait
+ * happens here, against the promise `connectDB` caches. On a warm process this
+ * resolves immediately.
+ *
+ * Registered after /health deliberately: a liveness probe that fails whenever
+ * the database is unreachable cannot tell you which of the two is broken.
+ */
+app.use((_req, res, next) => {
+  connectDB().then(
+    () => next(),
+    (err: Error) => {
+      console.error('[api] mongo connect failed:', err.message);
+      res.status(503).json({ error: 'Database unavailable.', code: 'DB_UNAVAILABLE' });
+    }
+  );
 });
 
 app.use('/api/auth', authRouter);

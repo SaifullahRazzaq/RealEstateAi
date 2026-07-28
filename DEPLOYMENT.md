@@ -40,20 +40,24 @@ Directory**: `apps/web` for the frontend, `apps/api` for this one. Getting that
 setting wrong is what makes Vercel compile the other app and fail with errors
 that have nothing to do with what you are deploying.
 
-The API runs as a single serverless function rather than a listening server:
+Vercel deploys the Express server as-is. It looks for a `server` entrypoint by
+name — `src/server.ts` here — captures the HTTP server from the `listen()` call,
+and routes requests to it over an internal port. There is no `api/` directory,
+no per-request handler, and no rewrite table: Express keeps owning its routing.
 
-- `api/index.js` is the function Vercel invokes. It re-exports `dist/serverless.js`.
-- `src/serverless.ts` awaits the DB, then hands the request to the Express app.
-- `src/app.ts` builds the app with no side effects — no `listen`, no connection.
-- `src/index.ts` still binds a port, and is what Docker and pm2 run. Vercel never
-  loads it.
-- `apps/api/vercel.json` rewrites every path to the function, so Express keeps
-  owning its own routing.
+Two details in the code exist for that detection and must not be undone:
 
-`api/index.js` is deliberately plain JavaScript importing the `tsc` output.
-Vercel compiles files under `api/` with its own bundler, whose module resolution
-does not match this project's NodeNext setup; building first means the function
-runs the same bytes as the Docker image.
+- `listen()` in `src/server.ts` runs **synchronously** at module startup. It is
+  not awaited behind the database connection, because Vercel reads that call to
+  find the server. `/health` therefore answers about a second before Mongo is
+  up, which is what you want from a liveness probe anyway.
+- The connection is instead awaited **per request**, by the middleware in
+  `src/app.ts` registered after `/health` and before the routers. `connectDB`
+  caches its promise, so this is free once connected.
+
+`apps/api/vercel.json` skips the build step: Vercel bundles `src/server.ts`
+itself, so running `tsc` there would only produce output nothing reads. Types are
+still checked by `npm run typecheck` locally and by the Docker image build.
 
 ### Import settings
 
@@ -65,8 +69,9 @@ runs the same bytes as the Docker image.
 
 ### Environment variables
 
-Everything from `apps/api/.env.example` except `PORT`, which is meaningless for a
-function. Two values must point at the deployed hosts rather than localhost:
+Everything from `apps/api/.env.example`. `PORT` is optional — on Vercel it only
+names the internal port. Three values must point at the deployed hosts rather
+than localhost:
 
 | Variable | Value |
 | --- | --- |
@@ -78,19 +83,19 @@ function. Two values must point at the deployed hosts rather than localhost:
 URIs** in the Google Cloud console, or the OAuth callback fails with
 `redirect_uri_mismatch`.
 
-MongoDB Atlas → **Network Access → Add IP Address → `0.0.0.0/0`**. Vercel
-functions have no fixed egress IP; the connection is still authenticated by the
-credentials in `MONGODB_URI`.
+MongoDB Atlas → **Network Access → Add IP Address → `0.0.0.0/0`**. Vercel has no
+fixed egress IP; the connection is still authenticated by the credentials in
+`MONGODB_URI`.
 
 ### What you give up
 
-- **Cold starts.** A first request after idle pays the Mongo handshake. The
-  connection promise is cached on `globalThis`, so warm invocations skip it.
-- **Request timeouts.** Long report exports can exceed the plan's function limit.
+- **Cold starts.** The first request after idle pays Node boot plus the Mongo
+  handshake — roughly a second and a half from the timings above.
+- **Request timeouts.** Long report exports can exceed the plan's limit.
 - **No background work.** Anything that must outlive a response needs a queue.
 
-If any of those bite, the Railway path below runs the identical code with none of
-them — only the two Vercel project settings differ.
+If any of those bite, the Railway path below runs the identical entry point with
+none of them.
 
 ---
 

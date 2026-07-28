@@ -1,11 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
-  "outputDirectory": "public",
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "dist/**"
-    }
-  },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
+  "buildCommand": "echo 'No build step: Vercel bundles src/server.ts itself. Types are checked by npm run typecheck locally and in the Docker image.'"
 }

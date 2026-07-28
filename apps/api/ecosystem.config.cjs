@@ -12,7 +12,7 @@ module.exports = {
   apps: [
     {
       name: 'crm-api',
-      script: 'dist/index.js',
+      script: 'dist/server.js',
       node_args: '--env-file=.env',
       cwd: __dirname,
       instances: 1,
