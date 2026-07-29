@@ -20,6 +20,16 @@ export type TabType =
   | 'won'
   | 'report';
 
+/** Cached result of the last AI scoring run. Absent until a lead is scored. */
+export interface LeadAI {
+  score: number;
+  band: 'hot' | 'warm' | 'cold';
+  reasoning: string;
+  nextAction: string;
+  signals: { positive: string[]; negative: string[] };
+  scoredAt: string;
+}
+
 export interface Lead {
   _id: string;
   name: string;
@@ -35,6 +45,7 @@ export interface Lead {
   meetingDate?: string;
   assignedUser: { _id: string; name: string; email: string } | string;
   companyId: string;
+  ai?: LeadAI;
   createdAt: string;
   updatedAt: string;
 }

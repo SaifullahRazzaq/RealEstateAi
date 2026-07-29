@@ -8,6 +8,7 @@ import { formatDate, formatPhone, cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { MoveLeadModal } from './MoveLeadModal';
+import { AIScoreBadge } from './AIScorePanel';
 
 interface LeadListProps {
   tab: string;
@@ -144,6 +145,7 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                         <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
                       </div>
                     )}
+                    <AIScoreBadge ai={lead.ai} />
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-xs text-slate-500 font-medium">{formatPhone(lead.phone)}</span>

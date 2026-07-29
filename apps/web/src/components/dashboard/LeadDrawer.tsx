@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { MoveLeadModal } from './MoveLeadModal';
 import { ScheduleModal } from './ScheduleModal';
+import { AIScorePanel, useAIEnabled } from './AIScorePanel';
 
 export function LeadDrawer() {
   const {
@@ -25,6 +26,7 @@ export function LeadDrawer() {
   const [showSchedule, setShowSchedule] = useState(false);
   const [dealValue, setDealValue] = useState('');
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const aiEnabled = useAIEnabled();
 
   useEffect(() => {
     if (selectedLead) {
@@ -147,6 +149,15 @@ export function LeadDrawer() {
             <Detail icon={<Building2 className="w-3.5 h-3.5" />} label="Company" value={selectedLead.company || '—'} />
             <Detail icon={<Hash className="w-3.5 h-3.5" />} label="Source" value={selectedLead.source || '—'} />
           </section>
+
+          {/* AI score — above the deal value, since it's what tells you whether
+              that number is worth chasing. */}
+          <AIScorePanel
+            leadId={selectedLead._id}
+            ai={selectedLead.ai}
+            enabled={aiEnabled}
+            onScored={(ai) => applyUpdated({ ...selectedLead, ai })}
+          />
 
           {/* Deal value */}
           <section>
