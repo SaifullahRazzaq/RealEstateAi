@@ -1,7 +1,7 @@
 import { Call } from '../models/Call.js';
 import { Comment } from '../models/Comment.js';
 import type { ILead } from '../models/Lead.js';
-import { structuredCall } from '../lib/ai.js';
+import { createStructuredBatch, structuredCall } from '../lib/ai.js';
 
 export interface LeadScore {
   /** 0–100. Higher means likelier to close. */
@@ -130,11 +130,29 @@ export async function buildLeadContext(lead: ILead): Promise<string> {
   return lines.join('\n');
 }
 
-export async function scoreLead(lead: ILead): Promise<LeadScore> {
-  const context = await buildLeadContext(lead);
-  return structuredCall<LeadScore>({
+/** The one place the scoring request is described, so live and batch agree. */
+async function scoringRequest(lead: ILead) {
+  return {
     system: SYSTEM,
-    prompt: `Score this lead.\n\n${context}`,
+    prompt: `Score this lead.\n\n${await buildLeadContext(lead)}`,
     schema: SCHEMA,
-  });
+  };
+}
+
+export async function scoreLead(lead: ILead): Promise<LeadScore> {
+  return structuredCall<LeadScore>(await scoringRequest(lead));
+}
+
+/**
+ * Submits a scoring run for many leads at once and returns the batch id.
+ *
+ * Each request is tagged with its lead id, which is what the results are keyed
+ * on when they come back — batch results arrive in arbitrary order, so position
+ * means nothing.
+ */
+export async function scoreLeadsBatch(leads: ILead[]): Promise<string> {
+  const requests = await Promise.all(
+    leads.map(async (lead) => ({ customId: String(lead._id), ...(await scoringRequest(lead)) }))
+  );
+  return createStructuredBatch(requests);
 }

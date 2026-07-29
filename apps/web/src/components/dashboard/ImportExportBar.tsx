@@ -5,6 +5,8 @@ import { useRef, useState } from 'react';
 import { Upload, Download, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCRMStore } from '@/store/crmStore';
+import { useAIEnabled } from './AIScorePanel';
+import { BulkScoreButton } from './BulkScoreButton';
 
 interface ImportExportBarProps {
   tab: string;
@@ -15,6 +17,7 @@ export function ImportExportBar({ tab, onImported }: ImportExportBarProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const aiEnabled = useAIEnabled();
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,7 +61,9 @@ export function ImportExportBar({ tab, onImported }: ImportExportBarProps) {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
+      {/* Lives here so every list page gets it without repeating the wiring. */}
+      <BulkScoreButton enabled={aiEnabled} />
       <input ref={fileRef} type="file" accept=".xlsx,.csv" onChange={handleImport} className="hidden" id="import-file-input" />
       <button
         id="import-btn"

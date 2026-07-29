@@ -83,6 +83,13 @@ than localhost:
 URIs** in the Google Cloud console, or the OAuth callback fails with
 `redirect_uri_mismatch`.
 
+`ANTHROPIC_API_KEY` is optional. Without it the CRM behaves exactly as before
+and only `/api/ai/*` refuses, with the frontend hiding its AI controls rather
+than offering buttons that can only fail. Bulk scoring goes through Anthropic's
+Batches API precisely so it survives here: a run-over-every-lead job cannot
+finish inside a function timeout, so the batch is submitted in one request and
+the client polls for it.
+
 MongoDB Atlas → **Network Access → Add IP Address → `0.0.0.0/0`**. Vercel has no
 fixed egress IP; the connection is still authenticated by the credentials in
 `MONGODB_URI`.

@@ -1,10 +1,11 @@
 import { Router } from 'express';
 
 import { Lead } from '../models/Lead.js';
-import { notFound } from '../lib/apiError.js';
+import { ScoreBatch } from '../models/ScoreBatch.js';
+import { badRequest, notFound } from '../lib/apiError.js';
 import { leadScope } from '../lib/scope.js';
-import { aiConfigured } from '../lib/ai.js';
-import { scoreLead } from '../services/leadScoring.js';
+import { aiConfigured, getBatchStatus, readBatchResults } from '../lib/ai.js';
+import { scoreLead, scoreLeadsBatch, type LeadScore } from '../services/leadScoring.js';
 import { summarizeLead } from '../services/leadSummary.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { requireAuth, authUser } from '../middleware/auth.js';
@@ -64,5 +65,103 @@ aiRouter.post(
     if (!lead) throw notFound('Lead not found.');
 
     res.json(await summarizeLead(lead));
+  })
+);
+
+/** One run is capped so a mis-click can't submit a whole database for scoring. */
+const MAX_BATCH = 200;
+
+/**
+ * POST /api/ai/leads/score-batch — score every unscored lead the caller can see.
+ *
+ * Returns as soon as the batch is submitted; the work happens on Anthropic's
+ * side. Scoring a hundred leads in-request would blow any serverless function
+ * timeout, and batching also bills at half rate — which is exactly the tradeoff
+ * a run-over-everything job should take, since nobody is waiting on it live.
+ */
+aiRouter.post(
+  '/leads/score-batch',
+  asyncHandler(async (req, res) => {
+    const user = authUser(req);
+
+    // Only leads that have never been scored, so re-running is cheap and safe.
+    const leads = await Lead.find({ ...leadScope(user), ai: { $exists: false } }).limit(MAX_BATCH);
+    if (leads.length === 0) throw badRequest('Every lead you can see has already been scored.');
+
+    const batchId = await scoreLeadsBatch(leads);
+
+    const batch = await ScoreBatch.create({
+      companyId: user.companyId,
+      requestedBy: user.id,
+      batchId,
+      total: leads.length,
+    });
+
+    res.status(202).json({ id: batch.id, total: batch.total, ended: false });
+  })
+);
+
+/**
+ * GET /api/ai/batches/:id — poll a run, and write the scores once it's done.
+ *
+ * Applying results here rather than in a background worker is what keeps this
+ * working on a serverless host: there is no process to do it later, so the
+ * first poll that observes the batch ended does the writing. `appliedAt` makes
+ * that idempotent when two polls race.
+ */
+aiRouter.get(
+  '/batches/:id',
+  asyncHandler(async (req, res) => {
+    const user = authUser(req);
+
+    const batch = await ScoreBatch.findOne({ _id: param(req.params.id), companyId: user.companyId });
+    if (!batch) throw notFound('Scoring run not found.');
+
+    if (batch.appliedAt) {
+      res.json({ id: batch.id, total: batch.total, ended: true, ...batch.applied });
+      return;
+    }
+
+    const status = await getBatchStatus(batch.batchId);
+    if (!status.ended) {
+      res.json({ id: batch.id, total: batch.total, ended: false, pending: status.counts.processing });
+      return;
+    }
+
+    // Claim the batch before reading results so a concurrent poll doesn't
+    // apply the same scores twice.
+    const claimed = await ScoreBatch.findOneAndUpdate(
+      { _id: batch._id, appliedAt: { $exists: false } },
+      { $set: { appliedAt: new Date() } }
+    );
+    if (!claimed) {
+      const fresh = await ScoreBatch.findById(batch._id);
+      res.json({ id: batch.id, total: batch.total, ended: true, ...fresh?.applied });
+      return;
+    }
+
+    let scored = 0;
+    let failed = 0;
+    for await (const result of readBatchResults<LeadScore>(batch.batchId)) {
+      if (!result.value) {
+        failed += 1;
+        continue;
+      }
+      // Re-apply the tenant scope on write: the batch was built from scoped
+      // leads, but the id round-tripped through an external service.
+      const updated = await Lead.updateOne(
+        { _id: result.customId, companyId: user.companyId },
+        { $set: { ai: { ...result.value, scoredAt: new Date() } } }
+      );
+      if (updated.matchedCount === 1) scored += 1;
+      else failed += 1;
+    }
+
+    // updateOne rather than claimed.save(): findOneAndUpdate returned the
+    // pre-update document, so saving it risks writing appliedAt back to unset
+    // and letting a later poll re-apply the whole batch.
+    await ScoreBatch.updateOne({ _id: batch._id }, { $set: { applied: { scored, failed } } });
+
+    res.json({ id: batch.id, total: batch.total, ended: true, scored, failed });
   })
 );
