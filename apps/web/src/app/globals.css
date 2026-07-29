@@ -52,7 +52,19 @@
   }
 }
 
-@layer utilities {
+/*
+ * These are component classes, not utilities, and the distinction matters: in
+ * the same layer a plain class beats a Tailwind utility of equal specificity by
+ * source order, so `.input-field`'s `padding` shorthand silently defeated the
+ * `pl-10` that leaves room for an input's leading icon — the icon ended up
+ * sitting on top of the text. The same clobbering hit `py-*`, `bg-*` and
+ * `rounded-*` overrides elsewhere.
+ *
+ * `components` sorts before `utilities`, so utilities now override these as
+ * intended. Keep new component classes here; put real utilities in their own
+ * `@layer utilities` block.
+ */
+@layer components {
   .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
 
   .glass {
