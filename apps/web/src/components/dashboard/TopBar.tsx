@@ -3,7 +3,7 @@
 import { apiFetch } from '@/lib/api';
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
-import { Bell, LogOut, Search, User, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Bell, LogOut, Search, User, CheckCircle2, AlertCircle, Clock, Menu } from 'lucide-react';
 import { useCRMStore } from '@/store/crmStore';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -57,9 +57,11 @@ function relativeTime(iso: string): string {
 
 interface TopBarProps {
   user: { name?: string | null; email?: string | null; role?: string };
+  /** Opens the overlay sidebar. Only reachable below lg, where it's rendered. */
+  onMenuClick?: () => void;
 }
 
-export function TopBar({ user }: TopBarProps) {
+export function TopBar({ user, onMenuClick }: TopBarProps) {
   const pathname = usePathname();
   const { searchQuery, setSearchQuery } = useCRMStore();
   const { logout } = useAuth();
@@ -101,24 +103,34 @@ export function TopBar({ user }: TopBarProps) {
   }, []);
 
   return (
-    <header className="flex-shrink-0 flex items-center gap-6 px-8 py-5 border-b z-30"
+    <header className="flex-shrink-0 flex items-center gap-3 sm:gap-6 px-4 sm:px-8 py-4 sm:py-5 border-b z-30"
       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}>
       
-      {/* Page title */}
-      <div className="flex-1">
+      {/* Opens the overlay sidebar; the sidebar is permanent from lg up. */}
+      <button
+        onClick={onMenuClick}
+        aria-label="Open navigation"
+        className="lg:hidden w-10 h-10 -ml-1 rounded-2xl flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-500 hover:text-slate-900 transition-colors flex-shrink-0"
+      >
+        <Menu className="w-5 h-5" />
+      </button>
+
+      {/* Page title — min-w-0 lets it truncate rather than push the row wide. */}
+      <div className="flex-1 min-w-0">
         <motion.div
           key={pathname}
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <h1 className="text-xl font-bold text-slate-900 leading-tight tracking-tight">{page.title}</h1>
-          <p className="text-xs text-slate-500 font-medium">{page.subtitle}</p>
+          <h1 className="text-base sm:text-xl font-bold text-slate-900 leading-tight tracking-tight truncate">{page.title}</h1>
+          <p className="text-xs text-slate-500 font-medium truncate hidden sm:block">{page.subtitle}</p>
         </motion.div>
       </div>
 
-      {/* Search */}
-      <div className="relative w-80 group">
+      {/* Search — hidden on phones, where the row has no space for it and the
+          list pages carry their own search. */}
+      <div className="relative hidden md:block md:w-56 lg:w-80 group">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-orange-500 transition-colors" />
         <input
           id="topbar-search"
@@ -153,7 +165,7 @@ export function TopBar({ user }: TopBarProps) {
                 initial={{ opacity: 0, y: 15, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 mt-3 w-80 bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden py-2"
+                className="absolute right-0 mt-3 w-[calc(100vw-2rem)] max-w-sm sm:w-80 bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden py-2"
               >
                 <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-900 uppercase tracking-wider">Notifications</span>

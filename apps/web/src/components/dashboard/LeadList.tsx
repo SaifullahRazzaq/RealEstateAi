@@ -17,6 +17,25 @@ interface LeadListProps {
   emptyIcon?: React.ReactNode;
 }
 
+/**
+ * Rendered twice per row: inline with the lead's details on narrow screens, and
+ * as its own column from `sm` up. Six columns don't fit in a phone's width, and
+ * the pill is the one that reads fine under the name instead of beside it.
+ */
+function StatusPill({ meta, className }: { meta: { label: string; color: string }; className?: string }) {
+  return (
+    <div
+      className={cn('px-3 py-1.5 rounded-xl items-center gap-2 flex-shrink-0', className)}
+      style={{ background: `${meta.color}1a` }}
+    >
+      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: meta.color }} />
+      <span className="text-[10px] font-bold uppercase tracking-widest whitespace-nowrap" style={{ color: meta.color }}>
+        {meta.label}
+      </span>
+    </div>
+  );
+}
+
 export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon }: LeadListProps) {
   const { leads, setLeads, setSelectedLead, searchQuery, selectedLead, refreshKey } = useCRMStore();
   const [loading, setLoading] = useState(false);
@@ -116,7 +135,7 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                 transition={{ delay: idx * 0.03, duration: 0.4 }}
                 onClick={() => setSelectedLead(lead)}
                 className={cn(
-                  'group flex items-center gap-5 px-6 py-5 rounded-[1.5rem] border cursor-pointer transition-all duration-500 relative overflow-hidden',
+                  'group flex items-center gap-3 sm:gap-5 px-4 sm:px-6 py-4 sm:py-5 rounded-[1.5rem] border cursor-pointer transition-all duration-500 relative overflow-hidden',
                   selectedLead?._id === lead._id
                     ? 'border-orange-500/40 shadow-2xl shadow-orange-500/5'
                     : 'hover:border-slate-200 hover:bg-slate-50'
@@ -147,7 +166,7 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                     )}
                     <AIScoreBadge ai={lead.ai} />
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 sm:gap-x-4">
                     <span className="text-xs text-slate-500 font-medium">{formatPhone(lead.phone)}</span>
                     {lead.company && <span className="text-[11px] text-slate-600 truncate hidden sm:inline">{lead.company}</span>}
                     {lead.followUpDate && (
@@ -156,6 +175,7 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                         {formatDate(lead.followUpDate)}
                       </span>
                     )}
+                    <StatusPill meta={meta} className="flex sm:hidden" />
                   </div>
                 </div>
 
@@ -168,22 +188,19 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                 )}
 
                 {/* Status badge */}
-                <div className="px-3 py-1.5 rounded-xl flex items-center gap-2" style={{ background: `${meta.color}1a` }}>
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: meta.color }} />
-                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: meta.color }}>{meta.label}</span>
-                </div>
+                <StatusPill meta={meta} className="hidden sm:flex" />
 
                 {/* Move button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); setMoveLead(lead); }}
                   title="Move lead"
-                  className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 hover:text-white hover:bg-orange-500 transition-all border border-slate-200 hover:border-orange-400"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 hover:text-white hover:bg-orange-500 transition-all border border-slate-200 hover:border-orange-400 flex-shrink-0"
                 >
                   <ArrowRightLeft className="w-4 h-4" />
                 </button>
 
                 {/* Action Indicator */}
-                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 group-hover:text-white group-hover:bg-orange-500 transition-all duration-500 border border-slate-200 group-hover:border-orange-400">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 group-hover:text-white group-hover:bg-orange-500 transition-all duration-500 border border-slate-200 group-hover:border-orange-400 flex-shrink-0">
                   <ChevronRight className="w-5 h-5" />
                 </div>
               </motion.div>

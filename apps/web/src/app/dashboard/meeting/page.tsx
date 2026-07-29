@@ -43,7 +43,7 @@ export default function MeetingPage() {
 
   return (
     <div className="h-full flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)' }}>
             <Video className="w-4 h-4 text-cyan-400" />

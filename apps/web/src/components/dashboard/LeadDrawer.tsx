@@ -89,7 +89,7 @@ export function LeadDrawer() {
         style={{ background: 'var(--bg-secondary)', borderLeft: '1px solid var(--border)' }}>
 
         {/* Header */}
-        <div className="px-6 py-6 border-b bg-slate-50" style={{ borderColor: 'var(--border)' }}>
+        <div className="px-4 sm:px-6 py-5 sm:py-6 border-b bg-slate-50" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl gradient-blue flex items-center justify-center text-white text-xl font-bold shadow-xl shadow-orange-500/20">
@@ -142,9 +142,9 @@ export function LeadDrawer() {
         </div>
 
         {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-7 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 sm:space-y-7 custom-scrollbar">
           {/* Contact details */}
-          <section className="grid grid-cols-2 gap-3">
+          <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Detail icon={<Phone className="w-3.5 h-3.5" />} label="Phone" value={formatPhone(selectedLead.phone)} />
             <Detail icon={<Mail className="w-3.5 h-3.5" />} label="Email" value={selectedLead.email || '—'} />
             <Detail icon={<Building2 className="w-3.5 h-3.5" />} label="Company" value={selectedLead.company || '—'} />

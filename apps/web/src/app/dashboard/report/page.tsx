@@ -100,7 +100,7 @@ export default function ReportPage() {
   return (
     <div className="h-full flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Performance Analytics</h1>
           <p className="text-sm text-slate-500 mt-0.5">Track your business growth and agent activity</p>
@@ -271,7 +271,7 @@ export default function ReportPage() {
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{agents.length} in team</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[520px] text-left text-xs">
             <thead>
               <tr className="bg-slate-50 text-slate-500 font-semibold">
                 <th className="px-6 py-3">Agent Name</th>

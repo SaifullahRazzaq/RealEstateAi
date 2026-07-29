@@ -61,7 +61,7 @@ export default function UsersPage() {
   return (
     <div className="h-full flex flex-col gap-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Team Management</h1>
           <p className="text-sm text-slate-500 mt-0.5">Manage your agents and their access roles</p>
@@ -78,12 +78,12 @@ export default function UsersPage() {
       {/* Users Table */}
       <div className="card flex-1 overflow-hidden flex flex-col shadow-xl">
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-          <div className="relative w-64">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input 
               type="text" 
               placeholder="Filter by name or email..." 
-              className="input-field pl-9 py-2 text-xs"
+              className="input-field pl-9 py-2 text-xs w-full"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -98,7 +98,8 @@ export default function UsersPage() {
               <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
             </div>
           ) : (
-            <table className="w-full text-left text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-left text-sm">
               <thead>
                 <tr className="text-slate-500 font-semibold border-b border-slate-200">
                   <th className="px-6 py-4">User</th>
@@ -155,6 +156,7 @@ export default function UsersPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </div>

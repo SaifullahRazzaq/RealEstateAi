@@ -47,7 +47,7 @@ export default function DailyTaskPage() {
   return (
     <div className="h-full flex flex-col gap-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.2)' }}>
             <CalendarCheck className="w-4 h-4 text-amber-400" />

@@ -80,7 +80,7 @@ export function ScheduleModal({ lead, onClose, onScheduled }: ScheduleModalProps
             </button>
           </div>
 
-          <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          <div className="p-4 sm:p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
             <div className="grid grid-cols-3 gap-2">
               {TYPES.map((t) => (
                 <button key={t.value}

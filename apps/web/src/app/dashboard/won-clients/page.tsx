@@ -11,7 +11,7 @@ export default function WonClientsPage() {
 
   return (
     <div className="h-full flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}>
             <Trophy className="w-4 h-4 text-green-400" />
