@@ -1,6 +1,7 @@
 import express from 'express';
+import type { RequestHandler } from 'express';
 import cors from 'cors';
-import helmet from 'helmet';
+import helmetImport from 'helmet';
 import morgan from 'morgan';
 
 import { env } from './config/env.js';
@@ -15,6 +16,21 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { reportsRouter } from './routes/reports.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { integrationsRouter } from './routes/integrations.js';
+
+/**
+ * helmet's package.json maps `import` to index.mjs and `require` to index.cjs
+ * but declares no `types` condition for either. Toolchains that pick a different
+ * one than tsc does hand back the module namespace instead of the callable
+ * default, and calling it fails with "This expression is not callable" — which
+ * is what Vercel's build reports even though `npm ci` plus tsc resolves it
+ * correctly locally, in a clean clone, and in the Docker image.
+ *
+ * So unwrap a nested default if one is present and state the shape this file
+ * actually uses. On every toolchain that already resolved it correctly the
+ * fallback is what runs and behaviour is unchanged.
+ */
+const helmet = ((helmetImport as unknown as { default?: unknown }).default ??
+  helmetImport) as () => RequestHandler;
 
 /**
  * Turns a CORS_ORIGINS entry into a matcher. Plain entries compare exactly;
