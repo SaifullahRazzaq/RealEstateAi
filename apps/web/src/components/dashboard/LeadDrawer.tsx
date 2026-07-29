@@ -13,6 +13,7 @@ import toast from 'react-hot-toast';
 import { MoveLeadModal } from './MoveLeadModal';
 import { ScheduleModal } from './ScheduleModal';
 import { AIScorePanel, useAIEnabled } from './AIScorePanel';
+import { AISummaryPanel } from './AISummaryPanel';
 
 export function LeadDrawer() {
   const {
@@ -158,6 +159,10 @@ export function LeadDrawer() {
             enabled={aiEnabled}
             onScored={(ai) => applyUpdated({ ...selectedLead, ai })}
           />
+
+          {/* Keyed on the lead so switching leads discards the previous brief
+              rather than showing it against the wrong person. */}
+          <AISummaryPanel key={selectedLead._id} leadId={selectedLead._id} enabled={aiEnabled} />
 
           {/* Deal value */}
           <section>

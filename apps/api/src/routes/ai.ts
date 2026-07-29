@@ -5,6 +5,7 @@ import { notFound } from '../lib/apiError.js';
 import { leadScope } from '../lib/scope.js';
 import { aiConfigured } from '../lib/ai.js';
 import { scoreLead } from '../services/leadScoring.js';
+import { summarizeLead } from '../services/leadSummary.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { requireAuth, authUser } from '../middleware/auth.js';
 
@@ -42,5 +43,26 @@ aiRouter.post(
     await lead.save();
 
     res.json(lead.ai);
+  })
+);
+
+/**
+ * POST /api/ai/leads/:id/summary — brief the agent on this lead.
+ *
+ * Deliberately not persisted, unlike the score. A score is read off a list to
+ * decide what to work on, so it has to survive the request; a brief is read in
+ * the seconds before a call and must reflect the note added a minute ago. A
+ * cached brief would quietly show yesterday's picture at exactly the moment
+ * being current matters most.
+ */
+aiRouter.post(
+  '/leads/:id/summary',
+  asyncHandler(async (req, res) => {
+    const user = authUser(req);
+
+    const lead = await Lead.findOne({ _id: param(req.params.id), ...leadScope(user) });
+    if (!lead) throw notFound('Lead not found.');
+
+    res.json(await summarizeLead(lead));
   })
 );
