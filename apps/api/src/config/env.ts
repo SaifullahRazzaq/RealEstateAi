@@ -71,6 +71,13 @@ export const env = {
 
   /** Where to bounce the browser after the Google consent screen. */
   WEB_APP_URL: process.env.WEB_APP_URL || 'http://localhost:3000',
+
+  /**
+   * Claude API key for the AI features. Optional on purpose: without it the CRM
+   * runs exactly as before and only the AI routes refuse, rather than the whole
+   * API failing to boot over a feature most deployments can live without.
+   */
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
 } as const;
 
 assertConfigured();

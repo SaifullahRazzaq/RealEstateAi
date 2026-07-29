@@ -16,6 +16,7 @@ import { dashboardRouter } from './routes/dashboard.js';
 import { reportsRouter } from './routes/reports.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { integrationsRouter } from './routes/integrations.js';
+import { aiRouter } from './routes/ai.js';
 
 /**
  * The one entry point, for every target: local dev, the Docker image, pm2 on a
@@ -133,6 +134,7 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api/reports', reportsRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/integrations', integrationsRouter);
+app.use('/api/ai', aiRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
