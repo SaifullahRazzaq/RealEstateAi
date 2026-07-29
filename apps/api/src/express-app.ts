@@ -54,6 +54,12 @@ const allowedOrigin = (() => {
 /**
  * The Express app, built with no listening socket of its own so that binding a
  * port stays the sole job of `server.ts`.
+ *
+ * This file is *not* named `app.ts` on purpose. Vercel's Express preset treats
+ * `src/app.{js,ts}` as a function entrypoint by convention, finds only this
+ * named export where it wants a handler, and fails every request with "Invalid
+ * export found in module". `server.ts` is the sole entrypoint; nothing else in
+ * `src/` may use a name Vercel scans for.
  */
 export const app = express();
 
