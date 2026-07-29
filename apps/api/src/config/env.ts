@@ -3,14 +3,30 @@
  * fails immediately with a clear message instead of throwing on first request.
  */
 
+/**
+ * Collects every missing variable before throwing rather than failing on the
+ * first. On a host that surfaces a module-load crash as an opaque 500 — Vercel
+ * reports `FUNCTION_INVOCATION_FAILED` — one round trip per missing variable is
+ * an expensive way to learn what the config needs.
+ */
+const missing: string[] = [];
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) {
-    throw new Error(
-      `Missing required environment variable: ${name}. See apps/api/.env.example.`
-    );
+    missing.push(name);
+    return '';
   }
   return value;
+}
+
+function assertConfigured() {
+  if (missing.length === 0) return;
+  throw new Error(
+    `Missing required environment variable${missing.length > 1 ? 's' : ''}: ` +
+      `${missing.join(', ')}. Set ${missing.length > 1 ? 'them' : 'it'} on the host ` +
+      `(Vercel: Project Settings -> Environment Variables) — see apps/api/.env.example.`
+  );
 }
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -56,3 +72,5 @@ export const env = {
   /** Where to bounce the browser after the Google consent screen. */
   WEB_APP_URL: process.env.WEB_APP_URL || 'http://localhost:3000',
 } as const;
+
+assertConfigured();

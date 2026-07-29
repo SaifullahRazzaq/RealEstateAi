@@ -240,11 +240,19 @@ and bump their versions in step with `tailwindcss`.
 
 ### Environment variables
 
-Add `NEXT_PUBLIC_API_URL` for each Vercel environment:
+`NEXT_PUBLIC_API_URL` is committed in `apps/web/.env.production`, so a production
+build points at the deployed API with no dashboard step. It holds nothing secret:
+`NEXT_PUBLIC_` values are inlined into the browser bundle by definition.
+
+Next.js load order means this needs no special care locally — `.env.local`
+(untracked, `http://localhost:4000`) wins on a dev machine, and `.env.production`
+applies on Vercel where no `.env.local` exists.
+
+To override per environment anyway, set `NEXT_PUBLIC_API_URL` in the dashboard;
+a real environment variable beats both files:
 
 - **Production** → `https://api.yourdomain.com`
 - **Preview** → `https://api-staging.yourdomain.com`
-- **Development** → `http://localhost:4000`
 
 `NEXT_PUBLIC_*` values are inlined into the browser bundle, so this must never
 hold a secret. It only ever holds a URL — the frontend has no secrets at all.

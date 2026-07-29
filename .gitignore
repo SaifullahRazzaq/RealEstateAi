@@ -37,6 +37,11 @@ yarn-error.log*
 .env
 .env.*
 !.env.example
+# The web app's production env holds one NEXT_PUBLIC_ value: the API's public
+# URL. NEXT_PUBLIC_ variables are inlined into the browser bundle, so this is
+# already public by construction and is tracked to keep the deployed frontend
+# pointed at the deployed API without a dashboard step. Never put a secret here.
+!apps/web/.env.production
 
 # personal notes — credentials, scratch
 *.local.md
