@@ -12,7 +12,7 @@ dashboardRouter.use(requireAuth);
 /** Express gives query values as string | string[] | ParsedQs; we only ever want a string. */
 const qs = (v: unknown): string | null => (typeof v === 'string' ? v : null);
 
-const OPEN_STATUSES: LeadStatus[] = ['new', 'incontact', 'followedup', 'due', 'meeting'];
+const OPEN_STATUSES: LeadStatus[] = ['new', 'incontact', 'followedup', 'due', 'meeting', 'token'];
 
 function dayKey(d: Date) {
   return d.toISOString().split('T')[0];
@@ -68,6 +68,7 @@ dashboardRouter.get('/', asyncHandler(async (req, res) => {
     statusAgg,
     sourceAgg,
     pipelineAgg,
+    tokenAgg,
     // Range-based metrics
     createdCount,
     wonAgg,
@@ -92,12 +93,41 @@ dashboardRouter.get('/', asyncHandler(async (req, res) => {
     ]),
     Lead.aggregate([
       { $match: { ...scope, status: { $in: OPEN_STATUSES } } },
-      { $group: { _id: null, value: { $sum: '$dealValue' }, count: { $sum: 1 } } },
+      {
+        $group: {
+          _id: null,
+          value: { $sum: '$dealValue' },
+          commission: { $sum: '$commission.net' },
+          count: { $sum: 1 },
+        },
+      },
+    ]),
+    // Tokened deals: bayana already collected, transfer still pending.
+    Lead.aggregate([
+      { $match: { ...scope, status: 'token' } },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          tokenCollected: { $sum: '$tokenAmount' },
+          value: { $sum: '$dealValue' },
+          commission: { $sum: '$commission.net' },
+        },
+      },
     ]),
     Lead.countDocuments(createdInRange),
     Lead.aggregate([
       { $match: { ...movedInRange, status: 'won' } },
-      { $group: { _id: null, revenue: { $sum: '$wonValue' }, count: { $sum: 1 } } },
+      {
+        $group: {
+          _id: null,
+          // What the agency earned, and separately what it sold. Summing the
+          // sale price and calling it revenue is the error this splits apart.
+          revenue: { $sum: '$commission.net' },
+          salesVolume: { $sum: '$wonValue' },
+          count: { $sum: 1 },
+        },
+      },
     ]),
     Lead.countDocuments({ ...movedInRange, status: 'lost' }),
     Schedule.countDocuments({
@@ -128,7 +158,9 @@ dashboardRouter.get('/', asyncHandler(async (req, res) => {
             status: '$status',
           },
           count: { $sum: 1 },
-          revenue: { $sum: '$wonValue' },
+          // Same correction as the KPI: the revenue line plots earnings, not
+          // the sale prices that passed through.
+          revenue: { $sum: '$commission.net' },
         },
       },
     ]),
@@ -161,8 +193,10 @@ dashboardRouter.get('/', asyncHandler(async (req, res) => {
   for (const s of statusAgg) statusMap[s._id] = s.count;
 
   const wonRevenue = wonAgg[0]?.revenue || 0;
+  const wonSalesVolume = wonAgg[0]?.salesVolume || 0;
   const wonCount = wonAgg[0]?.count || 0;
   const pipelineValue = pipelineAgg[0]?.value || 0;
+  const pipelineCommission = pipelineAgg[0]?.commission || 0;
   const closedInRange = wonCount + lostCount;
 
   // Build continuous time-series
@@ -198,13 +232,23 @@ dashboardRouter.get('/', asyncHandler(async (req, res) => {
       followedUp: statusMap['followedup'] || 0,
       due: statusMap['due'] || 0,
       meeting: statusMap['meeting'] || 0,
+      token: statusMap['token'] || 0,
       wonCount,
       lostCount,
       createdInRange: createdCount,
       meetingsScheduled,
       calls: callsInRange,
+      /** Agency earnings — net of any dealer split. The real top line. */
       revenueWon: wonRevenue,
+      /** Property value transacted. Large, and not the agency's money. */
+      salesVolume: wonSalesVolume,
       pipelineValue,
+      /** What the open pipeline is worth to the agency, not to the sellers. */
+      pipelineCommission,
+      tokenCount: tokenAgg[0]?.count || 0,
+      tokenCollected: tokenAgg[0]?.tokenCollected || 0,
+      tokenValue: tokenAgg[0]?.value || 0,
+      tokenCommission: tokenAgg[0]?.commission || 0,
       avgDealValue: pipelineAgg[0]?.count ? Math.round(pipelineValue / pipelineAgg[0].count) : 0,
       conversionRate: closedInRange > 0 ? Number(((wonCount / closedInRange) * 100).toFixed(1)) : 0,
     },
@@ -215,6 +259,7 @@ dashboardRouter.get('/', asyncHandler(async (req, res) => {
       { name: 'followedup', value: statusMap['followedup'] || 0 },
       { name: 'due', value: statusMap['due'] || 0 },
       { name: 'meeting', value: statusMap['meeting'] || 0 },
+      { name: 'token', value: statusMap['token'] || 0 },
       { name: 'won', value: statusMap['won'] || 0 },
       { name: 'lost', value: statusMap['lost'] || 0 },
     ].filter((s) => s.value > 0),

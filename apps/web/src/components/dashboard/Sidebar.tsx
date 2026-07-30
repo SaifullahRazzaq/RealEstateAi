@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Users, CalendarCheck, TrendingUp, Video, XCircle, Trophy, BarChart3, Building2, ChevronRight, ShieldCheck, LayoutDashboard, PhoneCall
+  Users, CalendarCheck, TrendingUp, Video, XCircle, Trophy, BarChart3, Building2, ChevronRight, ShieldCheck, LayoutDashboard, PhoneCall, Handshake
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -15,6 +15,7 @@ const navItems = [
   { label: 'Daily Task', href: '/dashboard/daily-task', icon: CalendarCheck, color: 'text-amber-400' },
   { label: 'Pipeline', href: '/dashboard/pipeline', icon: TrendingUp, color: 'text-purple-400' },
   { label: 'Meeting', href: '/dashboard/meeting', icon: Video, color: 'text-cyan-400' },
+  { label: 'Token / Bayana', href: '/dashboard/token', icon: Handshake, color: 'text-teal-500' },
   { label: 'Lost Leads', href: '/dashboard/lost-leads', icon: XCircle, color: 'text-red-400' },
   { label: 'Won Clients', href: '/dashboard/won-clients', icon: Trophy, color: 'text-green-400' },
   { label: 'Report', href: '/dashboard/report', icon: BarChart3, color: 'text-indigo-400' },

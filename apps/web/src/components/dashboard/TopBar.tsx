@@ -16,6 +16,7 @@ const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard/daily-task': { title: 'Daily Task', subtitle: "Today's follow-ups and calls" },
   '/dashboard/pipeline': { title: 'Pipeline', subtitle: 'Hot prospects to close' },
   '/dashboard/meeting': { title: 'Meetings', subtitle: 'Scheduled client meetings' },
+  '/dashboard/token': { title: 'Token / Bayana', subtitle: 'Bayana taken, transfer pending' },
   '/dashboard/lost-leads': { title: 'Lost Leads', subtitle: 'Not interested contacts' },
   '/dashboard/won-clients': { title: 'Won Clients', subtitle: 'Successfully closed deals' },
   '/dashboard/report': { title: 'Reports', subtitle: 'Activity and call analytics' },

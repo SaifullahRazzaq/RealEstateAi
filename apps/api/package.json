@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "seed": "tsx --env-file=.env src/scripts/seed-leads.ts",
     "create-admin": "tsx --env-file=.env src/scripts/create-admin.ts",
-    "seed:demo": "tsx --env-file=.env src/scripts/seed-demo.ts"
+    "seed:demo": "tsx --env-file=.env src/scripts/seed-demo.ts",
+    "backfill:commission": "tsx --env-file=.env src/scripts/backfill-commission.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

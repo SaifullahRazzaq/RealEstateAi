@@ -7,7 +7,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
 import {
-  Banknote, TrendingUp, Trophy, XCircle, CalendarClock, Target, Users,
+  Banknote, TrendingUp, Trophy, XCircle, CalendarClock, Target, Users, Handshake,
   Wallet, Loader2, ArrowUpRight, ArrowDownRight, Phone, PieChart as PieIcon, BarChart3,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -20,7 +20,10 @@ interface DashboardData {
     totalLeads: number; newLeads: number; inContact: number; followedUp: number;
     due: number; meeting: number; wonCount: number; lostCount: number;
     createdInRange: number; meetingsScheduled: number; calls: number;
-    revenueWon: number; pipelineValue: number; avgDealValue: number; conversionRate: number;
+    revenueWon: number; salesVolume: number;
+    pipelineValue: number; pipelineCommission: number;
+    token: number; tokenCount: number; tokenCollected: number; tokenValue: number; tokenCommission: number;
+    avgDealValue: number; conversionRate: number;
   };
   timeseries: { date: string; created: number; won: number; lost: number; revenue: number }[];
   statusDistribution: { name: string; value: number }[];
@@ -84,11 +87,14 @@ export default function DashboardPage() {
   const k = data?.kpis;
 
   const kpiCards = [
-    { label: 'Revenue Won', value: k ? fmtMoney(k.revenueWon) : '—', sub: k ? fmtFullMoney(k.revenueWon) : '', icon: Banknote, grad: 'gradient-green', accent: '#10b981', trend: 'in' },
-    { label: 'Pipeline Value', value: k ? fmtMoney(k.pipelineValue) : '—', sub: 'expected incoming', icon: Wallet, grad: 'gradient-blue', accent: '#f9622a', trend: 'in' },
-    { label: 'Deals Won', value: k?.wonCount ?? '—', sub: `avg ${k ? fmtMoney(k.avgDealValue) : ''}`, icon: Trophy, grad: 'gradient-purple', accent: '#a855f7', trend: 'in' },
+    // Commission earned, not sale price. The two sit side by side so the
+    // difference between "what we sold" and "what we made" is unmissable.
+    { label: 'Commission Earned', value: k ? fmtMoney(k.revenueWon) : '—', sub: k ? fmtFullMoney(k.revenueWon) : '', icon: Banknote, grad: 'gradient-green', accent: '#10b981', trend: 'in' },
+    { label: 'Sales Volume', value: k ? fmtMoney(k.salesVolume) : '—', sub: 'property value sold', icon: Trophy, grad: 'gradient-purple', accent: '#a855f7', trend: 'in' },
+    { label: 'Pipeline Commission', value: k ? fmtMoney(k.pipelineCommission) : '—', sub: k ? `on ${fmtMoney(k.pipelineValue)} of stock` : '', icon: Wallet, grad: 'gradient-blue', accent: '#f9622a', trend: 'in' },
+    { label: 'On Token', value: k?.tokenCount ?? '—', sub: k ? `${fmtMoney(k.tokenCollected)} bayana held` : '', icon: Handshake, grad: 'gradient-cyan', accent: '#0d9488', trend: 'in' },
+    { label: 'Deals Won', value: k?.wonCount ?? '—', sub: `avg ${k ? fmtMoney(k.avgDealValue) : ''}`, icon: CalendarClock, grad: 'gradient-green', accent: '#10b981', trend: 'in' },
     { label: 'Deals Lost', value: k?.lostCount ?? '—', sub: 'in period', icon: XCircle, grad: 'gradient-red', accent: '#ef4444', trend: 'out' },
-    { label: 'Meetings', value: k?.meetingsScheduled ?? '—', sub: 'scheduled', icon: CalendarClock, grad: 'gradient-cyan', accent: '#06b6d4', trend: 'in' },
     { label: 'Conversion', value: k ? `${k.conversionRate}%` : '—', sub: 'won / closed', icon: Target, grad: 'gradient-amber', accent: '#f59e0b', trend: 'in' },
     { label: 'New Leads', value: k?.createdInRange ?? '—', sub: 'in period', icon: Users, grad: 'gradient-blue', accent: '#f9622a', trend: 'in' },
     { label: 'Calls Logged', value: k?.calls ?? '—', sub: 'in period', icon: Phone, grad: 'gradient-purple', accent: '#8b5cf6', trend: 'in' },
@@ -241,7 +247,7 @@ export default function DashboardPage() {
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-4 sm:p-6 lg:col-span-2 flex flex-col min-h-[280px] sm:min-h-[300px]">
               <div className="flex items-center gap-2 mb-4 sm:mb-6">
                 <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0"><Banknote className="w-4 h-4 text-green-400" /></div>
-                <h3 className="text-sm font-bold text-slate-900">Revenue Collected (PKR)</h3>
+                <h3 className="text-sm font-bold text-slate-900">Commission Earned (PKR)</h3>
               </div>
               <div className="flex-1 w-full min-h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
