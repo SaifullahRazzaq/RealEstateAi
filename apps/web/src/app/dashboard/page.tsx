@@ -7,11 +7,12 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from 'recharts';
 import {
-  DollarSign, TrendingUp, Trophy, XCircle, CalendarClock, Target, Users,
+  Banknote, TrendingUp, Trophy, XCircle, CalendarClock, Target, Users,
   Wallet, Loader2, ArrowUpRight, ArrowDownRight, Phone, PieChart as PieIcon, BarChart3,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { STATUS_META } from '@/store/crmStore';
+import { formatPKR, formatPKRCompact } from '@/lib/utils';
 
 interface DashboardData {
   range: { start: string; end: string };
@@ -29,14 +30,8 @@ interface DashboardData {
   upcomingMeetings: any[];
 }
 
-function fmtMoney(n: number) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-  return `$${(n || 0).toLocaleString()}`;
-}
-function fmtFullMoney(n: number) {
-  return `$${(n || 0).toLocaleString()}`;
-}
+const fmtMoney = formatPKRCompact;
+const fmtFullMoney = formatPKR;
 
 const PRESETS: { label: string; days: number }[] = [
   { label: '7D', days: 7 },
@@ -89,7 +84,7 @@ export default function DashboardPage() {
   const k = data?.kpis;
 
   const kpiCards = [
-    { label: 'Revenue Won', value: k ? fmtMoney(k.revenueWon) : '—', sub: k ? fmtFullMoney(k.revenueWon) : '', icon: DollarSign, grad: 'gradient-green', accent: '#10b981', trend: 'in' },
+    { label: 'Revenue Won', value: k ? fmtMoney(k.revenueWon) : '—', sub: k ? fmtFullMoney(k.revenueWon) : '', icon: Banknote, grad: 'gradient-green', accent: '#10b981', trend: 'in' },
     { label: 'Pipeline Value', value: k ? fmtMoney(k.pipelineValue) : '—', sub: 'expected incoming', icon: Wallet, grad: 'gradient-blue', accent: '#f9622a', trend: 'in' },
     { label: 'Deals Won', value: k?.wonCount ?? '—', sub: `avg ${k ? fmtMoney(k.avgDealValue) : ''}`, icon: Trophy, grad: 'gradient-purple', accent: '#a855f7', trend: 'in' },
     { label: 'Deals Lost', value: k?.lostCount ?? '—', sub: 'in period', icon: XCircle, grad: 'gradient-red', accent: '#ef4444', trend: 'out' },
@@ -245,8 +240,8 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-4 sm:p-6 lg:col-span-2 flex flex-col min-h-[280px] sm:min-h-[300px]">
               <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0"><DollarSign className="w-4 h-4 text-green-400" /></div>
-                <h3 className="text-sm font-bold text-slate-900">Revenue Collected ($)</h3>
+                <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0"><Banknote className="w-4 h-4 text-green-400" /></div>
+                <h3 className="text-sm font-bold text-slate-900">Revenue Collected (PKR)</h3>
               </div>
               <div className="flex-1 w-full min-h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">

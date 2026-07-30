@@ -90,7 +90,7 @@ notificationsRouter.get('/', asyncHandler(async (req, res) => {
       id: `won-${l._id}`,
       type: 'won' as const,
       title: 'Deal Closed',
-      message: `${l.name} moved to Won${l.wonValue ? ` — $${l.wonValue.toLocaleString('en-US')}` : ''}`,
+      message: `${l.name} moved to Won${l.wonValue ? ` — PKR ${l.wonValue.toLocaleString('en-PK')}` : ''}`,
       at: new Date(l.updatedAt).toISOString(),
       leadId: String(l._id),
     })),

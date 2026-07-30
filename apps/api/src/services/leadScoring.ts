@@ -82,7 +82,10 @@ export async function buildLeadContext(lead: ILead): Promise<string> {
   const lines: string[] = [
     `Status: ${lead.status}`,
     `Source: ${lead.source || 'unknown'}`,
-    `Expected deal value: ${lead.dealValue ? `$${lead.dealValue.toLocaleString()}` : 'not set'}`,
+    // Currency stated explicitly: an unlabelled "8,500,000" reads as a wildly
+    // different deal depending on the unit the model assumes, and that number
+    // is part of what it scores on.
+    `Expected deal value: ${lead.dealValue ? `PKR ${lead.dealValue.toLocaleString('en-PK')}` : 'not set'}`,
     `Created: ${daysSince(lead.createdAt)} days ago`,
     `Last updated: ${daysSince(lead.updatedAt)} days ago`,
     `In pipeline: ${lead.isPipeline ? 'yes' : 'no'}`,

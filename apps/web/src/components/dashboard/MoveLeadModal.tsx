@@ -106,7 +106,7 @@ export function MoveLeadModal({ lead, onClose, onMoved }: MoveLeadModalProps) {
             {/* Won value */}
             {target === 'won' && (
               <div>
-                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-2">Deal value received ($)</p>
+                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-2">Deal value received (PKR)</p>
                 <input type="number" value={wonValue} onChange={(e) => setWonValue(e.target.value)}
                   placeholder="0" className="input-field" />
               </div>
