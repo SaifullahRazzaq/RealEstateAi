@@ -12,15 +12,20 @@ export const metadata: Metadata = {
 };
 
 /**
- * Stated rather than left to the framework default: `viewportFit: 'cover'` is
- * what makes `env(safe-area-inset-*)` report real values, which the drawer's
- * bottom composer relies on to stay clear of the iOS home indicator. Zoom is
- * left enabled — pinching to read a phone number is not ours to take away.
+ * Deliberately no `viewportFit: 'cover'`. Cover mode extends the layout under
+ * the notch, the rounded corners and the home indicator, and then every bar
+ * that touches an edge has to pay its own `env(safe-area-inset-*)` — the top
+ * bar and the landscape left/right edges here did not, so the shell rendered
+ * clipped on a real phone while looking correct in a desktop browser, where
+ * those insets are always zero. The default keeps content inside the safe area
+ * without anyone opting in. The `max(…, env(…))` paddings elsewhere fall back
+ * to their first argument and stay correct either way.
+ *
+ * Zoom is left enabled — pinching to read a phone number is not ours to take away.
  */
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  viewportFit: 'cover',
   themeColor: '#f9622a',
 };
 
