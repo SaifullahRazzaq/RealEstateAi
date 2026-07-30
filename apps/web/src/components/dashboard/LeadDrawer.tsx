@@ -4,10 +4,10 @@ import { apiFetch } from '@/lib/api';
 import { useEffect, useState, useRef } from 'react';
 import {
   X, Phone, Send, Loader2, Video, MessageCircle, Hash, Clock,
-  ArrowRightLeft, CalendarPlus, DollarSign, Mail, Building2, Star, StickyNote,
+  ArrowRightLeft, CalendarPlus, Banknote, Mail, Building2, Star, StickyNote,
 } from 'lucide-react';
 import { useCRMStore, Comment, Lead, STATUS_META } from '@/store/crmStore';
-import { formatDateTime, formatPhone, cn } from '@/lib/utils';
+import { formatDateTime, formatPhone, formatPKR, cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { MoveLeadModal } from './MoveLeadModal';
@@ -174,15 +174,15 @@ export function LeadDrawer() {
 
           {/* Deal value */}
           <section>
-            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-3">Deal Value ($)</p>
+            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-3">Deal Value (PKR)</p>
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+              <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
               <input type="number" value={dealValue} onChange={(e) => setDealValue(e.target.value)}
                 onBlur={() => { if (Number(dealValue) !== selectedLead.dealValue) patchLead({ dealValue: Number(dealValue) || 0 }); }}
                 placeholder="0" className="input-field pl-10" />
             </div>
             {selectedLead.status === 'won' && selectedLead.wonValue > 0 && (
-              <p className="text-[11px] text-green-400 font-bold mt-2">✓ Collected ${selectedLead.wonValue.toLocaleString()}</p>
+              <p className="text-[11px] text-green-600 font-bold mt-2">✓ Collected {formatPKR(selectedLead.wonValue)}</p>
             )}
           </section>
 

@@ -33,6 +33,36 @@ export function formatPhone(phone: string): string {
   return phone;
 }
 
+const LAKH = 100_000;
+const CRORE = 10_000_000;
+
+/** Drops trailing decimal zeros so 2.50 reads as "2.5" and 2.00 as "2". */
+function trimZero(n: number, digits: number): string {
+  const fixed = n.toFixed(digits);
+  // Guarded on the decimal point: an unguarded strip would turn "250" into "25".
+  return fixed.includes('.') ? fixed.replace(/\.?0+$/, '') : fixed;
+}
+
+/** The full amount, grouped and unabbreviated: "Rs 25,000,000". */
+export function formatPKR(n: number): string {
+  return `Rs ${(n || 0).toLocaleString('en-PK')}`;
+}
+
+/**
+ * Compact amount for KPI tiles, chart axes and list rows.
+ *
+ * Deliberately lakh/crore rather than K/M: property here is quoted as
+ * "85 lakh" and "2.5 crore", so an agent reads those without converting,
+ * whereas "Rs 8.5M" is a number they'd have to translate before it means
+ * anything. Below a lakh the grouped figure is already short enough.
+ */
+export function formatPKRCompact(n: number): string {
+  const value = n || 0;
+  if (value >= CRORE) return `Rs ${trimZero(value / CRORE, 2)} Cr`;
+  if (value >= LAKH) return `Rs ${trimZero(value / LAKH, 1)} Lac`;
+  return `Rs ${value.toLocaleString('en-PK')}`;
+}
+
 /**
  * Country code (digits only, no `+`) used to expand a locally-written number
  * into the international form WhatsApp needs. Set NEXT_PUBLIC_DEFAULT_COUNTRY_CODE

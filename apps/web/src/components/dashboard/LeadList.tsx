@@ -2,9 +2,9 @@
 
 import { apiFetch } from '@/lib/api';
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { Star, ChevronRight, ChevronLeft, Loader2, Clock, ArrowRightLeft, DollarSign } from 'lucide-react';
+import { Star, ChevronRight, ChevronLeft, Loader2, Clock, ArrowRightLeft, Banknote } from 'lucide-react';
 import { useCRMStore, Lead, STATUS_META } from '@/store/crmStore';
-import { formatDate, formatPhone, cn } from '@/lib/utils';
+import { formatDate, formatPhone, formatPKRCompact, cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { MoveLeadModal } from './MoveLeadModal';
@@ -183,11 +183,11 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                   </div>
                 </div>
 
-                {/* Deal value */}
+                {/* Deal value — compact, so a crore-scale figure still fits the row */}
                 {lead.dealValue > 0 && (
-                  <div className="hidden md:flex items-center gap-1 text-xs font-bold text-green-400">
-                    <DollarSign className="w-3.5 h-3.5" />
-                    {lead.dealValue.toLocaleString()}
+                  <div className="hidden md:flex items-center gap-1 text-xs font-bold text-green-600 whitespace-nowrap">
+                    <Banknote className="w-3.5 h-3.5 flex-shrink-0" />
+                    {formatPKRCompact(lead.dealValue)}
                   </div>
                 )}
 
