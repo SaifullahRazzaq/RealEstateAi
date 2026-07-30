@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 
 const pageTitles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'Dashboard', subtitle: 'Sales performance overview' },
+  '/dashboard/properties': { title: 'Properties', subtitle: 'Stock you can match clients against' },
   '/dashboard/new-leads': { title: 'New Leads', subtitle: 'All fresh incoming leads' },
   '/dashboard/in-contact': { title: 'In Contact', subtitle: 'Leads currently being engaged' },
   '/dashboard/daily-task': { title: 'Daily Task', subtitle: "Today's follow-ups and calls" },

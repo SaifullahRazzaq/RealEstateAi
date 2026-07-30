@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, color: 'text-orange-500' },
+  { label: 'Properties', href: '/dashboard/properties', icon: Building2, color: 'text-orange-500' },
   { label: 'New Leads', href: '/dashboard/new-leads', icon: Users, color: 'text-orange-500' },
   { label: 'In Contact', href: '/dashboard/in-contact', icon: PhoneCall, color: 'text-cyan-400' },
   { label: 'Daily Task', href: '/dashboard/daily-task', icon: CalendarCheck, color: 'text-amber-400' },

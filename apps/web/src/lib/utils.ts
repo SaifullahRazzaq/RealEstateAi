@@ -151,3 +151,36 @@ export function fillLeadMessage(template: string, contact: MessageContact): stri
   const greeting = `Hi ${firstName(contact.name) || contact.name}`;
   return filled ? `${greeting},\n\n${filled}` : `${greeting},`;
 }
+
+/* ---------------------------------------------------------------------------
+   Area units. Mirrors apps/api/src/lib/area.ts — the server normalises and
+   stores sq ft, this only reads it back the way an agent would say it.
+   --------------------------------------------------------------------------- */
+
+export type AreaUnit = 'marla' | 'kanal' | 'sqft' | 'sqyd';
+
+export const AREA_UNITS: AreaUnit[] = ['marla', 'kanal', 'sqft', 'sqyd'];
+
+const SQFT_PER: Record<AreaUnit, number> = { marla: 225, kanal: 4500, sqft: 1, sqyd: 9 };
+
+export function toSqft(value: number, unit: AreaUnit): number {
+  return Math.round((Number(value) || 0) * SQFT_PER[unit]);
+}
+
+export function fromSqft(sqft: number, unit: AreaUnit): number {
+  return (Number(sqft) || 0) / SQFT_PER[unit];
+}
+
+/** "1 kanal" rather than "20 marla" — whole kanal is how it gets spoken. */
+export function formatArea(sqft: number): string {
+  const value = Number(sqft) || 0;
+  if (value <= 0) return '—';
+  if (value >= SQFT_PER.kanal && value % SQFT_PER.kanal === 0) return `${trimZero(value / SQFT_PER.kanal, 2)} kanal`;
+  if (value % SQFT_PER.marla === 0) return `${trimZero(value / SQFT_PER.marla, 2)} marla`;
+  return `${trimZero(value, 0)} sq ft`;
+}
+
+/** The figure plots are actually compared on. */
+export function formatRatePerMarla(rate: number): string {
+  return rate > 0 ? `${formatPKRCompact(rate)}/marla` : '—';
+}
