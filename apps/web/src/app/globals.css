@@ -34,6 +34,13 @@
     height: 100%;
     margin: 0;
     padding: 0;
+    /* A single wide child anywhere must never let the whole page pan sideways. */
+    overflow-x: hidden;
+  }
+
+  /* Grey flash on every tap reads as lag on a phone; :active states cover it. */
+  * {
+    -webkit-tap-highlight-color: transparent;
   }
 
   ::-webkit-scrollbar {
@@ -250,6 +257,32 @@
     background: rgba(234, 179, 8, 0.12);
     color: #a16207;
     border: 1px solid rgba(234, 179, 8, 0.25);
+  }
+}
+
+@layer utilities {
+  /* Horizontal chip/tab strips scroll by swipe on a phone; the bar itself only
+     adds noise there, and every such strip has a visible overflow cue anyway. */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/*
+ * Deliberately unlayered so it outranks every Tailwind utility: iOS Safari
+ * zooms the viewport whenever a focused control's text is under 16px — and
+ * never zooms back out — so a `text-xs` filter input hijacks the whole page.
+ * Scoped to phone widths; the design's smaller inputs are right on a desktop.
+ */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
   }
 }
 

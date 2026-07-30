@@ -61,7 +61,7 @@ export function Sidebar({ user, open = false, onClose }: SidebarProps) {
       >
       
       {/* Logo */}
-      <div className="px-6 py-6 border-b" style={{ borderColor: 'var(--border)' }}>
+      <div className="px-6 pb-6 border-b" style={{ borderColor: 'var(--border)', paddingTop: 'max(1.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl gradient-blue flex items-center justify-center shadow-lg shadow-orange-500/30">
             <Building2 className="w-6 h-6 text-white" />
@@ -137,7 +137,7 @@ export function Sidebar({ user, open = false, onClose }: SidebarProps) {
       </nav>
 
       {/* User info at bottom */}
-      <div className="px-3 py-4 border-t" style={{ borderColor: 'var(--border)' }}>
+      <div className="px-3 pt-4 pb-4 border-t" style={{ borderColor: 'var(--border)', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-all cursor-pointer group">
           <div className="w-9 h-9 rounded-xl gradient-blue flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}

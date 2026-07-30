@@ -61,7 +61,7 @@ export function ImportExportBar({ tab, onImported }: ImportExportBarProps) {
   };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center flex-wrap gap-2 sm:gap-3">
       {/* Lives here so every list page gets it without repeating the wiring. */}
       <BulkScoreButton enabled={aiEnabled} />
       <input ref={fileRef} type="file" accept=".xlsx,.csv" onChange={handleImport} className="hidden" id="import-file-input" />
@@ -72,7 +72,8 @@ export function ImportExportBar({ tab, onImported }: ImportExportBarProps) {
         className="btn-secondary text-xs py-2 px-3"
       >
         {importing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-        Import Excel
+        {/* "Excel" is the part a phone can spare — the icon carries the rest. */}
+        Import<span className="hidden sm:inline">&nbsp;Excel</span>
       </button>
       <button
         id="export-btn"

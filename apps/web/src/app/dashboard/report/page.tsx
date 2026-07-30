@@ -98,35 +98,36 @@ export default function ReportPage() {
   if (!mounted) return null;
 
   return (
-    <div className="h-full flex flex-col gap-6 overflow-y-auto pr-2 custom-scrollbar">
+    // `main` already scrolls; nesting a second scroller traps the page.
+    <div className="flex flex-col gap-4 sm:gap-6 pb-10">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Performance Analytics</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Track your business growth and agent activity</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900">Performance Analytics</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Track your business growth and agent activity</p>
         </div>
 
-        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
-          <input 
-            type="date" 
-            value={startDate} 
-            onChange={(e) => setStartDate(e.target.value)} 
-            className="bg-transparent border-none text-xs text-slate-600 focus:ring-0 cursor-pointer"
+        <div className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-2xl border border-slate-200 flex-shrink-0">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="flex-1 min-w-0 bg-transparent border-none text-xs text-slate-600 focus:ring-0 cursor-pointer px-1"
             style={{ colorScheme: 'light' }}
           />
-          <span className="text-slate-400">|</span>
-          <input 
-            type="date" 
-            value={endDate} 
-            onChange={(e) => setEndDate(e.target.value)} 
-            className="bg-transparent border-none text-xs text-slate-600 focus:ring-0 cursor-pointer"
+          <span className="text-slate-400 flex-shrink-0">|</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="flex-1 min-w-0 bg-transparent border-none text-xs text-slate-600 focus:ring-0 cursor-pointer px-1"
             style={{ colorScheme: 'light' }}
           />
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: 'Total Calls', value: stats?.totalCalls ?? '—', icon: Phone, color: 'text-orange-500', bg: 'bg-orange-500/10', trend: trends?.totalCalls ?? '0%' },
           { label: 'Won Deals', value: stats?.wonLeads ?? '—', icon: Target, color: 'text-green-400', bg: 'bg-green-400/10', trend: trends?.wonLeads ?? '0%' },
@@ -138,41 +139,42 @@ export default function ReportPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="card p-5 group hover:border-slate-200 transition-all cursor-default"
+            className="card p-4 sm:p-5 group hover:border-slate-200 transition-all cursor-default"
           >
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center transition-transform group-hover:scale-110`}>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center transition-transform group-hover:scale-110 flex-shrink-0`}>
                 <item.icon className={`w-5 h-5 ${item.color}`} />
               </div>
-              <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${item.trend.startsWith('+') ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+              <span className={`text-[10px] font-bold px-2 py-1 rounded-full flex-shrink-0 ${item.trend.startsWith('+') ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                 {item.trend}
               </span>
             </div>
-            <p className="text-2xl font-bold text-slate-900 mb-0.5">{loading ? '...' : item.value}</p>
-            <p className="text-xs text-slate-500 font-medium">{item.label}</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900 mb-0.5 truncate">{loading ? '...' : item.value}</p>
+            <p className="text-xs text-slate-500 font-medium truncate">{item.label}</p>
           </motion.div>
         ))}
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Main Activity Chart */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4 }}
-          className="card p-6 lg:col-span-2 flex flex-col min-h-[350px]"
+          className="card p-4 sm:p-6 lg:col-span-2 flex flex-col min-h-[300px] sm:min-h-[350px]"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0">
                 <BarChart3 className="w-4 h-4 text-orange-500" />
               </div>
               <h3 className="text-sm font-bold text-slate-900">Call Activity</h3>
             </div>
           </div>
-          
-          <div className="flex-1 w-full">
+
+          {/* Recharts measures its parent, so the parent needs a real height */}
+          <div className="flex-1 w-full min-h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={activity}>
                 <defs>
@@ -206,16 +208,16 @@ export default function ReportPage() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5 }}
-          className="card p-6 flex flex-col min-h-[350px]"
+          className="card p-4 sm:p-6 flex flex-col min-h-[350px]"
         >
-          <div className="flex items-center gap-2 mb-6">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+          <div className="flex items-center gap-2 mb-4 sm:mb-6">
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
               <PieIcon className="w-4 h-4 text-purple-400" />
             </div>
             <h3 className="text-sm font-bold text-slate-900">Lead Distribution</h3>
           </div>
 
-          <div className="flex-1 w-full relative">
+          <div className="flex-1 w-full relative min-h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -247,9 +249,9 @@ export default function ReportPage() {
           {/* Legend */}
           <div className="grid grid-cols-2 gap-2 mt-4">
             {distribution.map((entry, idx) => (
-              <div key={entry.name} className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                <span className="text-[10px] text-slate-400 capitalize">{entry.name}: {entry.value}</span>
+              <div key={entry.name} className="flex items-center gap-2 min-w-0">
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                <span className="text-[10px] text-slate-500 capitalize truncate">{entry.name}: {entry.value}</span>
               </div>
             ))}
           </div>
@@ -263,22 +265,24 @@ export default function ReportPage() {
         transition={{ delay: 0.6 }}
         className="card overflow-hidden"
       >
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-slate-400" />
-            <h3 className="text-sm font-bold text-slate-900">Top Performing Agents</h3>
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Users className="w-4 h-4 text-slate-400 flex-shrink-0" />
+            <h3 className="text-sm font-bold text-slate-900 truncate">Top Performing Agents</h3>
           </div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{agents.length} in team</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex-shrink-0">{agents.length} in team</span>
         </div>
+        {/* Five comparable numbers per row: the table stays a table and scrolls
+            sideways inside its own card rather than widening the page. */}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[520px] text-left text-xs">
             <thead>
               <tr className="bg-slate-50 text-slate-500 font-semibold">
-                <th className="px-6 py-3">Agent Name</th>
-                <th className="px-6 py-3 text-center">Calls</th>
-                <th className="px-6 py-3 text-center">Won</th>
-                <th className="px-6 py-3 text-center">Conversion</th>
-                <th className="px-6 py-3 text-right">Growth</th>
+                <th className="px-4 sm:px-6 py-3">Agent Name</th>
+                <th className="px-4 sm:px-6 py-3 text-center">Calls</th>
+                <th className="px-4 sm:px-6 py-3 text-center">Won</th>
+                <th className="px-4 sm:px-6 py-3 text-center">Conversion</th>
+                <th className="px-4 sm:px-6 py-3 text-right">Growth</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -291,20 +295,20 @@ export default function ReportPage() {
               )}
               {agents.map((agent) => (
                 <tr key={agent.id} className="hover:bg-slate-100 transition-colors">
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full gradient-blue flex items-center justify-center text-[10px] font-bold text-white">
+                      <div className="w-8 h-8 rounded-full gradient-blue flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
                         {agent.name.charAt(0).toUpperCase()}
                       </div>
                       <span className="text-slate-900 font-medium">{agent.name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-center text-slate-500 font-medium">{agent.calls}</td>
-                  <td className="px-6 py-4 text-center text-slate-500 font-medium">{agent.won}</td>
-                  <td className="px-6 py-4 text-center">
-                    <span className="px-2 py-1 rounded-full bg-orange-500/10 text-orange-500 font-bold">{agent.conversion}%</span>
+                  <td className="px-4 sm:px-6 py-4 text-center text-slate-500 font-medium">{agent.calls}</td>
+                  <td className="px-4 sm:px-6 py-4 text-center text-slate-500 font-medium">{agent.won}</td>
+                  <td className="px-4 sm:px-6 py-4 text-center">
+                    <span className="px-2 py-1 rounded-full bg-orange-500/10 text-orange-500 font-bold whitespace-nowrap">{agent.conversion}%</span>
                   </td>
-                  <td className={`px-6 py-4 text-right font-bold ${agent.growth.startsWith('-') ? 'text-red-500' : 'text-green-500'}`}>
+                  <td className={`px-4 sm:px-6 py-4 text-right font-bold ${agent.growth.startsWith('-') ? 'text-red-500' : 'text-green-500'}`}>
                     {agent.growth}
                   </td>
                 </tr>

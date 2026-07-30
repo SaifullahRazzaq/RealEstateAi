@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
@@ -9,6 +9,19 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'RealEstate CRM — Smart Lead Management',
   description: 'A powerful multi-tenant SaaS CRM for real estate agents and companies to manage leads, follow-ups, deals, and reports.',
+};
+
+/**
+ * Stated rather than left to the framework default: `viewportFit: 'cover'` is
+ * what makes `env(safe-area-inset-*)` report real values, which the drawer's
+ * bottom composer relies on to stay clear of the iOS home indicator. Zoom is
+ * left enabled — pinching to read a phone number is not ours to take away.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#f9622a',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -42,7 +42,7 @@ export default function MeetingPage() {
   const activeDate = filter === 'today' ? getTodayStr() : filter === 'weekend' ? getWeekendDates() : customDate;
 
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:h-full">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)' }}>
@@ -56,13 +56,13 @@ export default function MeetingPage() {
       </div>
 
       {/* Date filter */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center flex-wrap gap-2">
         {(['today', 'weekend', 'custom'] as const).map((f) => (
           <button
             key={f}
             id={`meeting-filter-${f}`}
             onClick={() => setFilter(f)}
-            className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all capitalize"
+            className="px-3 py-2 sm:py-1.5 rounded-xl text-xs font-semibold transition-all capitalize whitespace-nowrap"
             style={{
               background: filter === f ? 'rgba(6,182,212,0.15)' : 'var(--bg-card)',
               color: filter === f ? '#22d3ee' : '#64748b',
@@ -84,7 +84,7 @@ export default function MeetingPage() {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 lg:min-h-0 lg:overflow-y-auto">
         <LeadList
           tab="meeting"
           date={activeDate}

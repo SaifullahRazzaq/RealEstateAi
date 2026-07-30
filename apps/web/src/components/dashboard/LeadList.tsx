@@ -1,7 +1,7 @@
 'use client';
 
 import { apiFetch } from '@/lib/api';
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import { Star, ChevronRight, ChevronLeft, Loader2, Clock, ArrowRightLeft, DollarSign } from 'lucide-react';
 import { useCRMStore, Lead, STATUS_META } from '@/store/crmStore';
 import { formatDate, formatPhone, cn } from '@/lib/utils';
@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { MoveLeadModal } from './MoveLeadModal';
 import { AIScoreBadge } from './AIScorePanel';
+import { QuickContactActions } from './ContactActions';
 
 interface LeadListProps {
   tab: string;
@@ -43,6 +44,7 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
   const [totalPages, setTotalPages] = useState(1);
   const [totalLeads, setTotalLeads] = useState(0);
   const [moveLead, setMoveLead] = useState<Lead | null>(null);
+  const topRef = useRef<HTMLDivElement>(null);
   const limit = 10;
 
   const fetchLeads = useCallback(async (page: number = 1) => {
@@ -91,7 +93,9 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
       fetchLeads(newPage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // The page scrolls inside `main` (and inside this list on desktop), so
+      // window.scrollTo alone leaves the user parked on the pagination bar.
+      topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -120,7 +124,7 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
   }
 
   return (
-    <div className="space-y-6 pb-10">
+    <div ref={topRef} className="space-y-6 pb-10 scroll-mt-4">
       <div className="grid grid-cols-1 gap-3">
         <AnimatePresence mode="popLayout">
           {leads.map((lead, idx) => {
@@ -151,7 +155,7 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                 )}
 
                 {/* Avatar */}
-                <div className="w-12 h-12 rounded-2xl gradient-blue flex items-center justify-center text-white text-base font-bold flex-shrink-0 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform duration-500">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl gradient-blue flex items-center justify-center text-white text-base font-bold flex-shrink-0 shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform duration-500">
                   {lead.name.charAt(0).toUpperCase()}
                 </div>
 
@@ -190,17 +194,21 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                 {/* Status badge */}
                 <StatusPill meta={meta} className="hidden sm:flex" />
 
+                {/* Call / WhatsApp — the two actions worth reaching without
+                    opening the lead first, which is most of phone use. */}
+                <QuickContactActions contact={lead} />
+
                 {/* Move button */}
                 <button
                   onClick={(e) => { e.stopPropagation(); setMoveLead(lead); }}
                   title="Move lead"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 hover:text-white hover:bg-orange-500 transition-all border border-slate-200 hover:border-orange-400 flex-shrink-0"
+                  className="hidden sm:flex w-10 h-10 rounded-xl bg-slate-50 items-center justify-center text-slate-500 hover:text-white hover:bg-orange-500 transition-all border border-slate-200 hover:border-orange-400 flex-shrink-0"
                 >
                   <ArrowRightLeft className="w-4 h-4" />
                 </button>
 
                 {/* Action Indicator */}
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-500 group-hover:text-white group-hover:bg-orange-500 transition-all duration-500 border border-slate-200 group-hover:border-orange-400 flex-shrink-0">
+                <div className="hidden md:flex w-10 h-10 rounded-xl bg-slate-50 items-center justify-center text-slate-500 group-hover:text-white group-hover:bg-orange-500 transition-all duration-500 border border-slate-200 group-hover:border-orange-400 flex-shrink-0">
                   <ChevronRight className="w-5 h-5" />
                 </div>
               </motion.div>
@@ -211,38 +219,44 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-6 py-6 bg-slate-50 rounded-3xl border border-slate-200 mt-10">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 sm:px-6 py-5 sm:py-6 bg-slate-50 rounded-3xl border border-slate-200 mt-8 sm:mt-10">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center sm:text-left">
             Showing <span className="text-slate-900">{(currentPage - 1) * limit + 1}</span> to <span className="text-slate-900">{Math.min(currentPage * limit, totalLeads)}</span> of <span className="text-slate-900">{totalLeads}</span> leads
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1 || loading}
-              className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-100 disabled:opacity-20 transition-all"
+              aria-label="Previous page"
+              className="w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 disabled:opacity-20 transition-all flex-shrink-0"
             >
               <ChevronLeft className="w-4 h-4 text-slate-900" />
             </button>
-            <div className="flex items-center gap-1.5">
+            {/* One page either side on a phone, two on a desktop — five 40px
+                buttons plus arrows is already wider than a 360px screen. */}
+            <div className="flex items-center gap-1 sm:gap-1.5">
               {[...Array(totalPages)].map((_, i) => {
                 const p = i + 1;
-                if (p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)) {
+                const distance = Math.abs(p - currentPage);
+                if (p === 1 || p === totalPages || distance <= 1) {
                   return (
                     <button
                       key={p}
                       onClick={() => handlePageChange(p)}
                       className={cn(
-                        'w-10 h-10 rounded-xl text-xs font-bold transition-all duration-300',
+                        'w-9 h-9 sm:w-10 sm:h-10 rounded-xl text-xs font-bold transition-all duration-300 flex-shrink-0',
+                        distance > 1 && 'hidden sm:block',
                         currentPage === p
-                          ? 'gradient-blue text-white shadow-lg shadow-orange-500/20 scale-110'
+                          ? 'gradient-blue text-white shadow-lg shadow-orange-500/20'
                           : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
                       )}
                     >
                       {p}
                     </button>
                   );
-                } else if (p === currentPage - 2 || p === currentPage + 2) {
-                  return <span key={p} className="text-slate-400 font-bold px-1 text-xs">...</span>;
+                }
+                if (distance === 2) {
+                  return <span key={p} className="hidden sm:block text-slate-400 font-bold px-1 text-xs">…</span>;
                 }
                 return null;
               })}
@@ -250,7 +264,8 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages || loading}
-              className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-slate-100 disabled:opacity-20 transition-all"
+              aria-label="Next page"
+              className="w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center hover:bg-slate-100 disabled:opacity-20 transition-all flex-shrink-0"
             >
               <ChevronRight className="w-4 h-4 text-slate-900" />
             </button>

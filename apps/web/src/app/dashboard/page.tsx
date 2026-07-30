@@ -100,40 +100,43 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="h-full flex flex-col gap-6 overflow-y-auto pr-1 custom-scrollbar pb-10">
+    // `main` is the scroll container — a second one here would trap the page
+    // inside a nested scroller on a phone.
+    <div className="flex flex-col gap-4 sm:gap-6 pb-10">
       {/* Header + Date filter */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Sales Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 lg:gap-4">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Sales Dashboard</h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Performance overview · {new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — {new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          {/* Four equal presets fill the row on a phone rather than huddling left */}
           <div className="flex items-center gap-1 p-1 rounded-2xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             {PRESETS.map((p) => (
               <button
                 key={p.days}
                 onClick={() => applyPreset(p.days)}
-                className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+                className="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 rounded-xl text-xs font-bold transition-all"
                 style={{
                   background: preset === p.days ? 'linear-gradient(135deg,#f9622a,#f9622a)' : 'transparent',
-                  color: preset === p.days ? '#fff' : '#94a3b8',
+                  color: preset === p.days ? '#fff' : '#64748b',
                 }}
               >
                 {p.label}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-2 p-1.5 rounded-2xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-1 p-1.5 rounded-2xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
             <input type="date" value={startDate} max={endDate}
               onChange={(e) => { setStartDate(e.target.value); setPreset(0); }}
-              className="bg-transparent border-none text-xs text-slate-600 px-2 cursor-pointer" style={{ colorScheme: 'light' }} />
-            <span className="text-slate-600 text-xs">→</span>
+              className="flex-1 min-w-0 bg-transparent border-none text-xs text-slate-600 px-2 cursor-pointer" style={{ colorScheme: 'light' }} />
+            <span className="text-slate-500 text-xs flex-shrink-0">→</span>
             <input type="date" value={endDate} min={startDate} max={new Date().toISOString().split('T')[0]}
               onChange={(e) => { setEndDate(e.target.value); setPreset(0); }}
-              className="bg-transparent border-none text-xs text-slate-600 px-2 cursor-pointer" style={{ colorScheme: 'light' }} />
+              className="flex-1 min-w-0 bg-transparent border-none text-xs text-slate-600 px-2 cursor-pointer" style={{ colorScheme: 'light' }} />
           </div>
         </div>
       </div>
@@ -145,46 +148,47 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* KPI grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {kpiCards.map((c, i) => (
               <motion.div
                 key={c.label}
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className="card p-5 relative overflow-hidden group"
+                className="card p-4 sm:p-5 relative overflow-hidden group"
               >
                 <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10 blur-2xl" style={{ background: c.accent }} />
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-11 h-11 rounded-2xl ${c.grad} flex items-center justify-center shadow-lg`} style={{ boxShadow: `0 8px 20px -8px ${c.accent}` }}>
-                    <c.icon className="w-5 h-5 text-slate-900" />
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl ${c.grad} flex items-center justify-center shadow-lg`} style={{ boxShadow: `0 8px 20px -8px ${c.accent}` }}>
+                    <c.icon className="w-5 h-5 text-white" />
                   </div>
                   {c.trend === 'in'
                     ? <ArrowUpRight className="w-4 h-4 text-green-500/70" />
                     : <ArrowDownRight className="w-4 h-4 text-red-500/70" />}
                 </div>
-                <p className="text-2xl font-bold text-slate-900 tracking-tight">{c.value}</p>
-                <p className="text-[11px] text-slate-500 font-medium mt-1">{c.label}</p>
-                {c.sub && <p className="text-[10px] text-slate-600 mt-0.5">{c.sub}</p>}
+                <p className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight truncate">{c.value}</p>
+                <p className="text-[11px] text-slate-500 font-medium mt-1 truncate">{c.label}</p>
+                {c.sub && <p className="text-[10px] text-slate-500 mt-0.5 truncate">{c.sub}</p>}
               </motion.div>
             ))}
           </div>
 
           {/* Main trend + status donut */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="card p-6 lg:col-span-2 flex flex-col min-h-[340px]">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center"><BarChart3 className="w-4 h-4 text-orange-500" /></div>
-                  <h3 className="text-sm font-bold text-slate-900">Leads Flow — Created vs Won vs Lost</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="card p-4 sm:p-6 lg:col-span-2 flex flex-col min-h-[300px] sm:min-h-[340px]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 sm:mb-6">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/10 flex items-center justify-center flex-shrink-0"><BarChart3 className="w-4 h-4 text-orange-500" /></div>
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">Leads Flow — Created vs Won vs Lost</h3>
                 </div>
-                <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-wider">
-                  <span className="flex items-center gap-1.5 text-slate-400"><span className="w-2 h-2 rounded-full bg-orange-500" />Created</span>
-                  <span className="flex items-center gap-1.5 text-slate-400"><span className="w-2 h-2 rounded-full bg-green-500" />Won</span>
-                  <span className="flex items-center gap-1.5 text-slate-400"><span className="w-2 h-2 rounded-full bg-red-500" />Lost</span>
+                <div className="flex items-center gap-3 sm:gap-4 text-[10px] font-bold uppercase tracking-wider flex-shrink-0">
+                  <span className="flex items-center gap-1.5 text-slate-500"><span className="w-2 h-2 rounded-full bg-orange-500" />Created</span>
+                  <span className="flex items-center gap-1.5 text-slate-500"><span className="w-2 h-2 rounded-full bg-green-500" />Won</span>
+                  <span className="flex items-center gap-1.5 text-slate-500"><span className="w-2 h-2 rounded-full bg-red-500" />Lost</span>
                 </div>
               </div>
-              <div className="flex-1 w-full">
+              {/* Recharts measures its parent, so the parent needs a real height */}
+              <div className="flex-1 w-full min-h-[220px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data?.timeseries}>
                     <defs>
@@ -205,12 +209,12 @@ export default function DashboardPage() {
               </div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="card p-6 flex flex-col min-h-[340px]">
+            <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="card p-4 sm:p-6 flex flex-col min-h-[340px]">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center"><PieIcon className="w-4 h-4 text-purple-400" /></div>
+                <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0"><PieIcon className="w-4 h-4 text-purple-400" /></div>
                 <h3 className="text-sm font-bold text-slate-900">Pipeline by Status</h3>
               </div>
-              <div className="flex-1 w-full relative">
+              <div className="flex-1 w-full relative min-h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={data?.statusDistribution} cx="50%" cy="50%" innerRadius={58} outerRadius={82} paddingAngle={4} dataKey="value">
@@ -228,9 +232,9 @@ export default function DashboardPage() {
               </div>
               <div className="grid grid-cols-2 gap-1.5 mt-4">
                 {data?.statusDistribution.map((entry) => (
-                  <div key={entry.name} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ background: STATUS_META[entry.name as keyof typeof STATUS_META]?.color }} />
-                    <span className="text-[10px] text-slate-400 capitalize">{STATUS_META[entry.name as keyof typeof STATUS_META]?.label || entry.name}: {entry.value}</span>
+                  <div key={entry.name} className="flex items-center gap-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: STATUS_META[entry.name as keyof typeof STATUS_META]?.color }} />
+                    <span className="text-[10px] text-slate-500 capitalize truncate">{STATUS_META[entry.name as keyof typeof STATUS_META]?.label || entry.name}: {entry.value}</span>
                   </div>
                 ))}
               </div>
@@ -238,13 +242,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Revenue + source */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-6 lg:col-span-2 flex flex-col min-h-[300px]">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center"><DollarSign className="w-4 h-4 text-green-400" /></div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="card p-4 sm:p-6 lg:col-span-2 flex flex-col min-h-[280px] sm:min-h-[300px]">
+              <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0"><DollarSign className="w-4 h-4 text-green-400" /></div>
                 <h3 className="text-sm font-bold text-slate-900">Revenue Collected ($)</h3>
               </div>
-              <div className="flex-1 w-full">
+              <div className="flex-1 w-full min-h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data?.timeseries}>
                     <defs>
@@ -262,12 +266,12 @@ export default function DashboardPage() {
               </div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-6 flex flex-col min-h-[300px]">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center"><BarChart3 className="w-4 h-4 text-amber-400" /></div>
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card p-4 sm:p-6 flex flex-col min-h-[280px] sm:min-h-[300px]">
+              <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0"><BarChart3 className="w-4 h-4 text-amber-400" /></div>
                 <h3 className="text-sm font-bold text-slate-900">Leads by Source</h3>
               </div>
-              <div className="flex-1 w-full">
+              <div className="flex-1 w-full min-h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data?.sourceDistribution} layout="vertical" margin={{ left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#eef0f3" horizontal={false} />
@@ -282,7 +286,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Lists */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             <ListCard title="Top Open Deals" icon={<TrendingUp className="w-4 h-4 text-orange-500" />} accent="bg-orange-500/10"
               rows={(data?.topDeals || []).map((d) => ({
                 title: d.name, sub: d.company || STATUS_META[d.status as keyof typeof STATUS_META]?.label,

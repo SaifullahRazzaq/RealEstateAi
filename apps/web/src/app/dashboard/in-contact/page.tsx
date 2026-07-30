@@ -10,7 +10,7 @@ export default function InContactPage() {
   const { setLeads } = useCRMStore();
 
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:h-full">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)' }}>
@@ -24,7 +24,7 @@ export default function InContactPage() {
         <ImportExportBar tab="incontact" onImported={() => setLeads([])} />
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 lg:min-h-0 lg:overflow-y-auto">
         <LeadList
           tab="incontact"
           emptyMessage="No leads in contact yet"
