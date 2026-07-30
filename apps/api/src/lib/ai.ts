@@ -1,4 +1,11 @@
-import Anthropic from '@anthropic-ai/sdk';
+// Named imports, not the default one. A default import only resolves to the
+// client class when the compiler honours `esModuleInterop` and picks the ESM
+// type entrypoint; Vercel builds `src/server.ts` with its own compiler options
+// rather than this package's tsconfig, resolves `index.d.ts` instead, and the
+// default lands as the module namespace — "Cannot use namespace 'Anthropic' as
+// a type" and "no construct signatures". These names are plain named exports in
+// both declaration entrypoints, so they resolve the same way everywhere.
+import { Anthropic, RateLimitError, AuthenticationError } from '@anthropic-ai/sdk';
 
 import { env } from '../config/env.js';
 import { ApiError } from './apiError.js';
@@ -77,10 +84,10 @@ export async function structuredCall<T>(options: StructuredOptions): Promise<T> 
   } catch (err) {
     // Anthropic's typed errors carry a status; surface rate limits as such so
     // the frontend can back off instead of showing a generic failure.
-    if (err instanceof Anthropic.RateLimitError) {
+    if (err instanceof RateLimitError) {
       throw new ApiError('VALIDATION_ERROR', 'AI is rate limited right now. Try again shortly.');
     }
-    if (err instanceof Anthropic.AuthenticationError) {
+    if (err instanceof AuthenticationError) {
       throw new ApiError('VALIDATION_ERROR', 'ANTHROPIC_API_KEY is invalid.');
     }
     console.error('[ai] request failed:', err);
