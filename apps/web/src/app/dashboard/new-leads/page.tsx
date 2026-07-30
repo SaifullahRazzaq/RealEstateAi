@@ -10,9 +10,9 @@ export default function NewLeadsPage() {
   const { setLeads } = useCRMStore();
 
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="flex flex-col gap-4 lg:h-full">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: 'rgba(249,98,42,0.1)', border: '1px solid rgba(249,98,42,0.2)' }}>
             <Users className="w-4 h-4 text-orange-500" />
@@ -26,7 +26,7 @@ export default function NewLeadsPage() {
       </div>
 
       {/* Lead list */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 lg:min-h-0 lg:overflow-y-auto">
         <LeadList
           tab="new"
           emptyMessage="No new leads yet"

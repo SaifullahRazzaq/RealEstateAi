@@ -62,25 +62,25 @@ export function ScheduleModal({ lead, onClose, onScheduled }: ScheduleModalProps
         className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
         <motion.div initial={{ opacity: 0, scale: 0.94, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94 }}
           transition={{ type: 'spring', damping: 24, stiffness: 260 }} onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl"
+          className="w-full max-w-md max-h-[92vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl"
           style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-light)' }}>
 
-          <div className="px-6 py-5 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl gradient-cyan flex items-center justify-center">
+          <div className="flex-shrink-0 px-4 sm:px-6 py-4 sm:py-5 border-b flex items-center justify-between gap-3" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl gradient-cyan flex items-center justify-center flex-shrink-0">
                 <CalendarClock className="w-5 h-5 text-white" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-sm font-bold text-slate-900">Schedule Activity</h3>
-                <p className="text-[11px] text-slate-500">for {lead.name}</p>
+                <p className="text-[11px] text-slate-500 truncate">for {lead.name}</p>
               </div>
             </div>
-            <button onClick={onClose} className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100">
+            <button onClick={onClose} aria-label="Close" className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 flex-shrink-0">
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+          <div className="flex-1 p-4 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar">
             <div className="grid grid-cols-3 gap-2">
               {TYPES.map((t) => (
                 <button key={t.value}
@@ -88,7 +88,7 @@ export function ScheduleModal({ lead, onClose, onScheduled }: ScheduleModalProps
                   className={cn('flex flex-col items-center gap-1.5 py-3 rounded-2xl text-xs font-bold border transition-all')}
                   style={{
                     color: t.color,
-                    background: type === t.value ? `${t.color}18` : 'rgba(255,255,255,0.03)',
+                    background: type === t.value ? `${t.color}18` : '#f8fafc',
                     borderColor: type === t.value ? t.color : 'transparent',
                   }}>
                   <t.icon className="w-4 h-4" />{t.label}
@@ -124,7 +124,7 @@ export function ScheduleModal({ lead, onClose, onScheduled }: ScheduleModalProps
             </div>
           </div>
 
-          <div className="px-6 py-4 border-t flex items-center gap-3" style={{ borderColor: 'var(--border)' }}>
+          <div className="flex-shrink-0 px-4 sm:px-6 py-4 border-t flex items-center gap-3" style={{ borderColor: 'var(--border)' }}>
             <button onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
             <button onClick={submit} disabled={saving} className="btn-primary flex-1 justify-center disabled:opacity-40">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarClock className="w-4 h-4" />}

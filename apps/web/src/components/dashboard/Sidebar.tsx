@@ -26,18 +26,42 @@ const adminItems = [
 
 interface SidebarProps {
   user: { name?: string | null; email?: string | null; role?: string; companyId?: string };
+  /** Mobile/tablet only — below lg the sidebar is an overlay, not a column. */
+  open?: boolean;
+  onClose?: () => void;
 }
 
-export function Sidebar({ user }: SidebarProps) {
+export function Sidebar({ user, open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const isAdmin = user?.role === 'admin';
 
+  // Tapping a link on mobile should get out of the way; on desktop the sidebar
+  // is permanent and there is nothing to close.
+  const handleNavigate = () => onClose?.();
+
   return (
-    <aside className="w-64 flex-shrink-0 flex flex-col border-r shadow-2xl z-20"
-      style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}>
+    <>
+      {/* Backdrop — only rendered while the overlay sidebar is open. */}
+      {open && (
+        <div
+          onClick={onClose}
+          aria-hidden
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+        />
+      )}
+
+      <aside
+        className={cn(
+          // Below lg: fixed overlay that slides in. From lg: a normal column.
+          'fixed inset-y-0 left-0 z-40 w-64 max-w-[85vw] flex-shrink-0 flex flex-col border-r shadow-2xl',
+          'transition-transform duration-300 lg:static lg:translate-x-0 lg:z-20',
+          open ? 'translate-x-0' : '-translate-x-full'
+        )}
+        style={{ background: 'var(--bg-sidebar)', borderColor: 'var(--border)' }}
+      >
       
       {/* Logo */}
-      <div className="px-6 py-6 border-b" style={{ borderColor: 'var(--border)' }}>
+      <div className="px-6 pb-6 border-b" style={{ borderColor: 'var(--border)', paddingTop: 'max(1.5rem, env(safe-area-inset-top))' }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl gradient-blue flex items-center justify-center shadow-lg shadow-orange-500/30">
             <Building2 className="w-6 h-6 text-white" />
@@ -61,6 +85,7 @@ export function Sidebar({ user }: SidebarProps) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={handleNavigate}
                   className={cn(
                     'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative',
                     isActive
@@ -90,6 +115,7 @@ export function Sidebar({ user }: SidebarProps) {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={handleNavigate}
                     className={cn(
                       'group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative',
                       isActive
@@ -111,7 +137,7 @@ export function Sidebar({ user }: SidebarProps) {
       </nav>
 
       {/* User info at bottom */}
-      <div className="px-3 py-4 border-t" style={{ borderColor: 'var(--border)' }}>
+      <div className="px-3 pt-4 pb-4 border-t" style={{ borderColor: 'var(--border)', paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-all cursor-pointer group">
           <div className="w-9 h-9 rounded-xl gradient-blue flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-orange-500/20 group-hover:scale-105 transition-transform">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
@@ -122,6 +148,7 @@ export function Sidebar({ user }: SidebarProps) {
           </div>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
