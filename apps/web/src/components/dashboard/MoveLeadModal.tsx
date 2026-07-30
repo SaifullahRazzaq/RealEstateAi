@@ -5,10 +5,16 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, AlertTriangle, Loader2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Lead, LeadStatus, STATUS_META } from '@/store/crmStore';
-import { cn } from '@/lib/utils';
+import { Lead, LeadStatus, CommissionSide, STATUS_META } from '@/store/crmStore';
+import { cn, formatPKR } from '@/lib/utils';
 
-const ORDER: LeadStatus[] = ['new', 'incontact', 'followedup', 'due', 'meeting', 'won', 'lost'];
+const ORDER: LeadStatus[] = ['new', 'incontact', 'followedup', 'due', 'meeting', 'token', 'won', 'lost'];
+
+/** Today in the yyyy-mm-dd shape a date input wants, in local time. */
+function todayISO() {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
 
 interface MoveLeadModalProps {
   lead: Lead;
@@ -20,14 +26,43 @@ export function MoveLeadModal({ lead, onClose, onMoved }: MoveLeadModalProps) {
   const [target, setTarget] = useState<LeadStatus | null>(null);
   const [note, setNote] = useState('');
   const [wonValue, setWonValue] = useState<string>(String(lead.dealValue || ''));
+  const [tokenAmount, setTokenAmount] = useState<string>(String(lead.tokenAmount || ''));
+  const [transferDate, setTransferDate] = useState<string>(
+    lead.expectedTransferDate ? lead.expectedTransferDate.slice(0, 10) : ''
+  );
+  const [rate, setRate] = useState<string>(String(lead.commission?.rate ?? 1));
+  const [side, setSide] = useState<CommissionSide>(lead.commission?.side ?? 'both');
+  const [dealerShare, setDealerShare] = useState<string>(String(lead.commission?.dealerSharePercent ?? 0));
   const [saving, setSaving] = useState(false);
+
+  /** Mirrors the server's rule so the agent sees the fee before committing. */
+  const previewCommission = (base: number) => {
+    const gross = Math.round(base * ((Number(rate) || 0) / 100) * (side === 'both' ? 2 : 1));
+    return { gross, net: Math.round(gross * (1 - (Number(dealerShare) || 0) / 100)) };
+  };
 
   const confirmMove = async () => {
     if (!target) return;
     setSaving(true);
     try {
       const payload: Record<string, unknown> = { status: target, moveNote: note };
+
+      if (target === 'token') {
+        payload.tokenAmount = Number(tokenAmount) || 0;
+        if (transferDate) payload.expectedTransferDate = transferDate;
+      }
+
       if (target === 'won') payload.wonValue = Number(wonValue) || lead.dealValue || 0;
+
+      // Commission is settled at the two stages where money is actually
+      // agreed, so the figure is captured while the agent still has it.
+      if (target === 'token' || target === 'won') {
+        payload.commission = {
+          rate: Number(rate) || 0,
+          side,
+          dealerSharePercent: Number(dealerShare) || 0,
+        };
+      }
 
       const res = await apiFetch<{ lead: Lead }>(`/api/leads/${lead._id}`, {
         method: 'PATCH',
@@ -103,10 +138,62 @@ export function MoveLeadModal({ lead, onClose, onMoved }: MoveLeadModalProps) {
               </div>
             </div>
 
+            {/* Token — bayana taken, transfer pending */}
+            {target === 'token' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-2">Token / bayana (PKR)</p>
+                  <input type="number" value={tokenAmount} onChange={(e) => setTokenAmount(e.target.value)}
+                    placeholder="0" className="input-field" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-2">Expected transfer</p>
+                  <input type="date" value={transferDate} min={todayISO()}
+                    onChange={(e) => setTransferDate(e.target.value)}
+                    className="input-field text-xs" style={{ colorScheme: 'light' }} />
+                </div>
+              </div>
+            )}
+
+            {/* Commission — the agency's actual income, settled here */}
+            {(target === 'token' || target === 'won') && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-2">Commission</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <label className="block">
+                    <span className="text-[9px] text-slate-500 font-semibold">Rate % / side</span>
+                    <input type="number" step="0.25" value={rate} onChange={(e) => setRate(e.target.value)} className="input-field mt-1" />
+                  </label>
+                  <label className="block">
+                    <span className="text-[9px] text-slate-500 font-semibold">Side</span>
+                    <select value={side} onChange={(e) => setSide(e.target.value as CommissionSide)} className="input-field mt-1">
+                      <option value="both">Both</option>
+                      <option value="buyer">Buyer</option>
+                      <option value="seller">Seller</option>
+                    </select>
+                  </label>
+                  <label className="block">
+                    <span className="text-[9px] text-slate-500 font-semibold">Dealer share %</span>
+                    <input type="number" value={dealerShare} onChange={(e) => setDealerShare(e.target.value)} className="input-field mt-1" />
+                  </label>
+                </div>
+                {(() => {
+                  const base = target === 'won' ? Number(wonValue) || 0 : lead.dealValue || 0;
+                  const { gross, net } = previewCommission(base);
+                  return (
+                    <p className="text-[11px] text-slate-600 mt-2 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200">
+                      Sale {formatPKR(base)} → agency earns <b className="text-green-700">{formatPKR(net)}</b>
+                      {net !== gross && <span className="text-slate-500"> (of {formatPKR(gross)}, rest to the dealer)</span>}
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
+
             {/* Won value */}
             {target === 'won' && (
               <div>
-                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-2">Deal value received (PKR)</p>
+                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-2">Sale price realised (PKR)</p>
                 <input type="number" value={wonValue} onChange={(e) => setWonValue(e.target.value)}
                   placeholder="0" className="input-field" />
               </div>

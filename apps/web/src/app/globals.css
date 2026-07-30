@@ -253,6 +253,12 @@
     border: 1px solid rgba(168, 85, 247, 0.2);
   }
 
+  .badge-token {
+    background: rgba(13, 148, 136, 0.1);
+    color: #0f766e;
+    border: 1px solid rgba(13, 148, 136, 0.22);
+  }
+
   .badge-meeting {
     background: rgba(234, 179, 8, 0.12);
     color: #a16207;

@@ -6,8 +6,23 @@ export type LeadStatus =
   | 'followedup'
   | 'due'
   | 'meeting'
+  | 'token'
   | 'won'
   | 'lost';
+
+export type CommissionSide = 'buyer' | 'seller' | 'both';
+
+/** What the agency earns. Kept apart from the property's sale price. */
+export interface LeadCommission {
+  rate: number;
+  side: CommissionSide;
+  /** A negotiated flat fee; overrides the rate when present. */
+  amount?: number;
+  dealerSharePercent: number;
+  /** Both derived server-side, so the UI never recomputes them. */
+  gross: number;
+  net: number;
+}
 
 export type TabType =
   | 'dashboard'
@@ -38,8 +53,14 @@ export interface Lead {
   company?: string;
   source?: string;
   status: LeadStatus;
+  /** Sale price of the property. Not the agency's income — see `commission`. */
   dealValue: number;
   wonValue: number;
+  commission: LeadCommission;
+  /** Bayana held against the deal while the transfer is pending. */
+  tokenAmount: number;
+  tokenDate?: string;
+  expectedTransferDate?: string;
   followUpDate?: string;
   isPipeline: boolean;
   meetingDate?: string;
@@ -107,6 +128,9 @@ export const STATUS_META: Record<LeadStatus, { label: string; color: string; bad
   followedup: { label: 'Followed Up', color: '#8b5cf6', badge: 'badge-followedup' },
   due: { label: 'Due', color: '#f59e0b', badge: 'badge-due' },
   meeting: { label: 'Meeting', color: '#eab308', badge: 'badge-meeting' },
+  // Deliberately close to won's green without being it — bayana is taken but
+  // the transfer has not happened, and the colour should not claim otherwise.
+  token: { label: 'Token', color: '#0d9488', badge: 'badge-token' },
   won: { label: 'Won', color: '#10b981', badge: 'badge-won' },
   lost: { label: 'Lost', color: '#ef4444', badge: 'badge-lost' },
 };

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import * as XLSX from 'xlsx';
-import { Lead, LEAD_STATUSES, type LeadStatus } from '../models/Lead.js';
+import { Lead, LEAD_STATUSES, COMMISSION_SIDES, type LeadStatus } from '../models/Lead.js';
 import { Comment } from '../models/Comment.js';
 import { Call } from '../models/Call.js';
 import { ApiError } from '../lib/apiError.js';
@@ -15,7 +15,9 @@ leadsRouter.use(requireAuth);
 /** Express 5 types route params as string | string[]; routes always want the single value. */
 const param = (v: unknown): string => (Array.isArray(v) ? v[0] : String(v ?? ''));
 
-const OPEN_STATUSES: LeadStatus[] = ['new', 'incontact', 'followedup', 'due', 'meeting'];
+// `token` counts as open: bayana is taken but nothing has transferred, so the
+// deal is still live work and still belongs in the pipeline.
+const OPEN_STATUSES: LeadStatus[] = ['new', 'incontact', 'followedup', 'due', 'meeting', 'token'];
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -59,6 +61,7 @@ leadsRouter.get(
       case 'followedup':
       case 'lost':
       case 'won':
+      case 'token':
         query.status = tab;
         break;
       case 'daily':
@@ -138,8 +141,16 @@ leadsRouter.get(
       Company: l.company || '',
       Source: l.source || '',
       Status: l.status,
-      DealValue: l.dealValue || 0,
-      WonValue: l.wonValue || 0,
+      SalePrice: l.dealValue || 0,
+      RealisedPrice: l.wonValue || 0,
+      CommissionRate: l.commission?.rate ?? 0,
+      CommissionSide: l.commission?.side || '',
+      DealerSharePercent: l.commission?.dealerSharePercent ?? 0,
+      CommissionGross: l.commission?.gross ?? 0,
+      CommissionNet: l.commission?.net ?? 0,
+      TokenAmount: l.tokenAmount || 0,
+      TokenDate: l.tokenDate ? new Date(l.tokenDate).toISOString().split('T')[0] : '',
+      ExpectedTransferDate: l.expectedTransferDate ? new Date(l.expectedTransferDate).toISOString().split('T')[0] : '',
       Pipeline: l.isPipeline ? 'Yes' : 'No',
       FollowUpDate: l.followUpDate ? new Date(l.followUpDate).toISOString().split('T')[0] : '',
       MeetingDate: l.meetingDate ? new Date(l.meetingDate).toISOString().split('T')[0] : '',
@@ -290,9 +301,26 @@ leadsRouter.patch(
     const editable = [
       'name', 'phone', 'email', 'company', 'source',
       'dealValue', 'wonValue', 'followUpDate', 'isPipeline', 'meetingDate',
+      'tokenAmount', 'tokenDate', 'expectedTransferDate',
     ] as const;
     for (const key of editable) {
       if (body[key] !== undefined) (lead as any)[key] = body[key];
+    }
+
+    // Commission is patched field by field so a caller can adjust the dealer
+    // split without having to resend the rate and side it never touched.
+    if (body.commission && typeof body.commission === 'object') {
+      const c = body.commission;
+      if (c.rate !== undefined) lead.commission.rate = Number(c.rate) || 0;
+      if (c.side !== undefined) {
+        if (!COMMISSION_SIDES.includes(c.side)) {
+          throw new ApiError('VALIDATION_ERROR', `Invalid commission side. Allowed: ${COMMISSION_SIDES.join(', ')}.`);
+        }
+        lead.commission.side = c.side;
+      }
+      if (c.dealerSharePercent !== undefined) lead.commission.dealerSharePercent = Number(c.dealerSharePercent) || 0;
+      // null clears a negotiated flat fee and hands the deal back to the rate.
+      if (c.amount !== undefined) lead.commission.amount = c.amount === null ? undefined : Number(c.amount);
     }
 
     if (body.status && body.status !== lead.status) {
@@ -309,10 +337,22 @@ leadsRouter.patch(
       });
       lead.status = to;
 
+      // Token — bayana taken, transfer pending. The date defaults to now
+      // because the money changed hands the moment the stage was set.
+      if (to === 'token') {
+        if (body.tokenAmount !== undefined) lead.tokenAmount = Number(body.tokenAmount) || 0;
+        if (!lead.tokenDate) lead.tokenDate = new Date();
+      }
+
       // Won — capture realised value (fallback to dealValue)
       if (to === 'won' && !lead.wonValue) {
         lead.wonValue = body.wonValue !== undefined ? Number(body.wonValue) : lead.dealValue;
       }
+
+      // Losing a tokened deal means the bayana came back or was forfeited;
+      // either way it stops being money the pipeline should count.
+      if (to === 'lost') lead.tokenAmount = 0;
+
       // Closing a deal takes it out of the pipeline either way.
       if (to === 'won' || to === 'lost') lead.isPipeline = false;
     }

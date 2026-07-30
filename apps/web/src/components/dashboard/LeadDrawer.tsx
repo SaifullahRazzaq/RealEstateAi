@@ -7,7 +7,7 @@ import {
   ArrowRightLeft, CalendarPlus, Banknote, Mail, Building2, Star, StickyNote,
 } from 'lucide-react';
 import { useCRMStore, Comment, Lead, STATUS_META } from '@/store/crmStore';
-import { formatDateTime, formatPhone, formatPKR, cn } from '@/lib/utils';
+import { formatDate, formatDateTime, formatPhone, formatPKR, cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { MoveLeadModal } from './MoveLeadModal';
@@ -172,9 +172,46 @@ export function LeadDrawer() {
               rather than showing it against the wrong person. */}
           <AISummaryPanel key={selectedLead._id} leadId={selectedLead._id} enabled={aiEnabled} />
 
+          {/* Token — only meaningful once bayana has actually been taken */}
+          {(selectedLead.status === 'token' || selectedLead.tokenAmount > 0) && (
+            <section className="px-4 py-3 rounded-2xl" style={{ background: 'rgba(13,148,136,0.06)', border: '1px solid rgba(13,148,136,0.18)' }}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] text-teal-700 uppercase font-bold tracking-wider">Token received</p>
+                  <p className="text-sm font-bold text-slate-900">{formatPKR(selectedLead.tokenAmount)}</p>
+                </div>
+                {selectedLead.expectedTransferDate && (
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Transfer</p>
+                    <p className="text-xs font-semibold text-slate-900">{formatDate(selectedLead.expectedTransferDate)}</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Commission — what the agency actually earns on this deal */}
+          <section>
+            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-3">Agency Commission</p>
+            <div className="px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-lg font-bold text-green-700">{formatPKR(selectedLead.commission?.net ?? 0)}</span>
+                <span className="text-[11px] text-slate-500">
+                  {selectedLead.commission?.rate ?? 0}% · {selectedLead.commission?.side ?? 'both'}
+                </span>
+              </div>
+              {(selectedLead.commission?.dealerSharePercent ?? 0) > 0 && (
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {formatPKR(selectedLead.commission.gross)} gross · {selectedLead.commission.dealerSharePercent}% to dealer
+                </p>
+              )}
+              <p className="text-[10px] text-slate-500 mt-2">Set when the lead is moved to Token or Won.</p>
+            </div>
+          </section>
+
           {/* Deal value */}
           <section>
-            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-3">Deal Value (PKR)</p>
+            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-3">Sale Price (PKR)</p>
             <div className="relative">
               <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
               <input type="number" value={dealValue} onChange={(e) => setDealValue(e.target.value)}
