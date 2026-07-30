@@ -1,4 +1,9 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
+import { AREA_UNITS, type AreaUnit } from '../lib/area.js';
+import {
+  PROPERTY_TYPES, PROPERTY_PURPOSES,
+  type PropertyType, type PropertyPurpose,
+} from './Property.js';
 
 // Pipeline statuses. new -> incontact -> followedup / due -> meeting -> token -> won | lost
 //
@@ -72,6 +77,31 @@ export interface ILead extends Document {
     gross: number;
     net: number;
   };
+  /**
+   * What the client is actually looking for. This is what makes a lead
+   * matchable against stock — without it every enquiry is just a name and a
+   * number, and finding them something means an agent remembering the call.
+   *
+   * Every field is optional: a first call rarely produces all of them, and a
+   * half-filled requirement still narrows the list usefully.
+   */
+  requirement: {
+    /** Empty means no preference, not "no types". */
+    types: PropertyType[];
+    purpose?: PropertyPurpose;
+    minBudget: number;
+    maxBudget: number;
+    /** Society or area names, matched case-insensitively. */
+    locations: string[];
+    /** Normalised to sq ft on the way in, like the property's own area. */
+    minAreaSqft: number;
+    maxAreaSqft: number;
+    /** Only so the UI can show the range back in the unit it was given. */
+    areaUnit: AreaUnit;
+    /** Investment buyers behave differently from end-users; worth recording. */
+    intent?: 'investment' | 'end-use';
+    notes?: string;
+  };
   /** Bayana taken to hold the deal, in PKR. */
   tokenAmount: number;
   tokenDate?: Date;
@@ -132,6 +162,18 @@ const LeadSchema = new Schema<ILead>(
       dealerSharePercent: { type: Number, default: 0, min: 0, max: 100 },
       gross: { type: Number, default: 0, min: 0 },
       net: { type: Number, default: 0, min: 0 },
+    },
+    requirement: {
+      types: { type: [String], enum: PROPERTY_TYPES, default: [] },
+      purpose: { type: String, enum: PROPERTY_PURPOSES },
+      minBudget: { type: Number, default: 0, min: 0 },
+      maxBudget: { type: Number, default: 0, min: 0 },
+      locations: { type: [String], default: [] },
+      minAreaSqft: { type: Number, default: 0, min: 0 },
+      maxAreaSqft: { type: Number, default: 0, min: 0 },
+      areaUnit: { type: String, enum: AREA_UNITS, default: 'marla' },
+      intent: { type: String, enum: ['investment', 'end-use'] },
+      notes: { type: String, trim: true },
     },
     tokenAmount: { type: Number, default: 0, min: 0 },
     tokenDate: { type: Date },

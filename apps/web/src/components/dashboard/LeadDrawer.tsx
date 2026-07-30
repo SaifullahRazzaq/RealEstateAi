@@ -16,6 +16,7 @@ import { AIScorePanel, useAIEnabled } from './AIScorePanel';
 import { AISummaryPanel } from './AISummaryPanel';
 import { ContactActionBar } from './ContactActions';
 import { WhatsAppComposer } from './WhatsAppComposer';
+import { RequirementPanel } from './RequirementPanel';
 
 export function LeadDrawer() {
   const {
@@ -158,6 +159,8 @@ export function LeadDrawer() {
             <Detail icon={<Building2 className="w-3.5 h-3.5" />} label="Company" value={selectedLead.company || '—'} />
             <Detail icon={<Hash className="w-3.5 h-3.5" />} label="Source" value={selectedLead.source || '—'} />
           </section>
+
+          <RequirementPanel lead={selectedLead} onUpdated={applyUpdated} />
 
           {/* AI score — above the deal value, since it's what tells you whether
               that number is worth chasing. */}

@@ -57,6 +57,7 @@ export interface Lead {
   dealValue: number;
   wonValue: number;
   commission: LeadCommission;
+  requirement: LeadRequirement;
   /** Bayana held against the deal while the transfer is pending. */
   tokenAmount: number;
   tokenDate?: string;
@@ -69,6 +70,76 @@ export interface Lead {
   ai?: LeadAI;
   createdAt: string;
   updatedAt: string;
+}
+
+export type PropertyType = 'plot' | 'house' | 'flat' | 'shop' | 'office' | 'agricultural' | 'file';
+export const PROPERTY_TYPES: PropertyType[] = ['plot', 'house', 'flat', 'shop', 'office', 'agricultural', 'file'];
+
+export type PropertyPurpose = 'sale' | 'rent';
+export type PropertyStatus = 'available' | 'token' | 'sold' | 'withdrawn';
+
+export const PROPERTY_STATUS_META: Record<PropertyStatus, { label: string; color: string }> = {
+  available: { label: 'Available', color: '#10b981' },
+  token: { label: 'On Token', color: '#0d9488' },
+  sold: { label: 'Sold', color: '#64748b' },
+  withdrawn: { label: 'Withdrawn', color: '#ef4444' },
+};
+
+export interface Property {
+  _id: string;
+  code?: string;
+  title: string;
+  type: PropertyType;
+  purpose: PropertyPurpose;
+  status: PropertyStatus;
+  city: string;
+  society: string;
+  block?: string;
+  plotNo?: string;
+  /** What was typed; `areaSqft` is the normalised form matching reads. */
+  size: number;
+  sizeUnit: 'marla' | 'kanal' | 'sqft' | 'sqyd';
+  areaSqft: number;
+  price: number;
+  ratePerMarla: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  corner: boolean;
+  parkFacing: boolean;
+  boulevard: boolean;
+  possessionReady: boolean;
+  ownerName?: string;
+  ownerPhone?: string;
+  notes?: string;
+  assignedUser?: { _id: string; name: string } | string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** What the client is looking for — the other half of a match. */
+export interface LeadRequirement {
+  types: PropertyType[];
+  purpose?: PropertyPurpose;
+  minBudget: number;
+  maxBudget: number;
+  locations: string[];
+  minAreaSqft: number;
+  maxAreaSqft: number;
+  areaUnit: 'marla' | 'kanal' | 'sqft' | 'sqyd';
+  intent?: 'investment' | 'end-use';
+  notes?: string;
+}
+
+/** Why the engine ranked something where it did — shown next to the score. */
+export interface MatchReason {
+  label: string;
+  fits: boolean;
+}
+
+export interface PropertyMatch {
+  property: Property;
+  score: number;
+  reasons: MatchReason[];
 }
 
 export interface Comment {
