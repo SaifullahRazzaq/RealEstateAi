@@ -3,24 +3,15 @@
 import { apiFetch } from '@/lib/api';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CalendarClock, Loader2, Video, Phone, CheckCircle2 } from 'lucide-react';
+import { X, CalendarClock, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Lead } from '@/store/crmStore';
-import { cn } from '@/lib/utils';
-
-type SType = 'meeting' | 'call' | 'followup';
+import { Lead, STATUS_META } from '@/store/crmStore';
 
 interface ScheduleModalProps {
   lead: Lead;
   onClose: () => void;
   onScheduled?: () => void;
 }
-
-const TYPES: { value: SType; label: string; icon: React.ElementType; color: string }[] = [
-  { value: 'meeting', label: 'Meeting', icon: Video, color: '#06b6d4' },
-  { value: 'call', label: 'Call', icon: Phone, color: '#3b82f6' },
-  { value: 'followup', label: 'Follow-up', icon: CheckCircle2, color: '#8b5cf6' },
-];
 
 function defaultWhen() {
   const d = new Date();
@@ -30,8 +21,7 @@ function defaultWhen() {
 }
 
 export function ScheduleModal({ lead, onClose, onScheduled }: ScheduleModalProps) {
-  const [type, setType] = useState<SType>('meeting');
-  const [title, setTitle] = useState(`Meeting with ${lead.name}`);
+  const [title, setTitle] = useState(`${STATUS_META[lead.status].label} with ${lead.name}`);
   const [scheduledAt, setScheduledAt] = useState(defaultWhen());
   const [durationMins, setDurationMins] = useState(30);
   const [location, setLocation] = useState('');
@@ -44,7 +34,7 @@ export function ScheduleModal({ lead, onClose, onScheduled }: ScheduleModalProps
     try {
       await apiFetch<{ schedule: unknown }>('/api/schedule', {
         method: 'POST',
-        body: { leadId: lead._id, type, title, scheduledAt, durationMins, location, notes },
+        body: { leadId: lead._id, title, scheduledAt, durationMins, location, notes },
       });
       toast.success('Scheduled successfully');
       onScheduled?.();
@@ -81,20 +71,16 @@ export function ScheduleModal({ lead, onClose, onScheduled }: ScheduleModalProps
           </div>
 
           <div className="flex-1 p-4 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar">
-            <div className="grid grid-cols-3 gap-2">
-              {TYPES.map((t) => (
-                <button key={t.value}
-                  onClick={() => { setType(t.value); setTitle(`${t.label} with ${lead.name}`); }}
-                  className={cn('flex flex-col items-center gap-1.5 py-3 rounded-2xl text-xs font-bold border transition-all')}
-                  style={{
-                    color: t.color,
-                    background: type === t.value ? `${t.color}18` : '#f8fafc',
-                    borderColor: type === t.value ? t.color : 'transparent',
-                  }}>
-                  <t.icon className="w-4 h-4" />{t.label}
-                </button>
-              ))}
-            </div>
+            {/* A schedule is just the lead's next dated commitment now — the
+                stage it sits in already says what kind of contact it is, so
+                asking for meeting/call/follow-up again only invited them to
+                disagree. Scheduling never moves the lead; the agent does. */}
+            <p className="text-[11px] text-slate-600 leading-relaxed px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200">
+              Sets the next date for <b className="text-slate-900">{lead.name}</b>, currently in{' '}
+              <span className="font-bold" style={{ color: STATUS_META[lead.status].color }}>
+                {STATUS_META[lead.status].label}
+              </span>. The stage stays as it is — use Move Lead to change it.
+            </p>
 
             <div>
               <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-2">Title</p>

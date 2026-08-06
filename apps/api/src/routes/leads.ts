@@ -17,7 +17,7 @@ const param = (v: unknown): string => (Array.isArray(v) ? v[0] : String(v ?? '')
 
 // `token` counts as open: bayana is taken but nothing has transferred, so the
 // deal is still live work and still belongs in the pipeline.
-const OPEN_STATUSES: LeadStatus[] = ['new', 'incontact', 'followedup', 'due', 'meeting', 'token'];
+const OPEN_STATUSES: LeadStatus[] = ['new', 'dailytask', 'pipeline', 'meeting', 'token'];
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -37,7 +37,6 @@ leadsRouter.get(
     const date = str(req.query.date);
     const search = str(req.query.search);
     const source = str(req.query.source);
-    const pipeline = str(req.query.pipeline);
     const sort = str(req.query.sort) || 'recent';
     const page = Math.max(1, parseInt(str(req.query.page) || '1', 10) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(str(req.query.limit) || '10', 10) || 10));
@@ -56,21 +55,17 @@ leadsRouter.get(
 
     switch (tab) {
       case 'new':
-      case 'incontact':
-      case 'due':
-      case 'followedup':
+      case 'pipeline':
       case 'lost':
       case 'won':
       case 'token':
         query.status = tab;
         break;
+      // The two dated stages. Without a date they'd return every lead in the
+      // stage on every day of the calendar, which is not a day's work.
       case 'daily':
-        query.status = { $in: ['due', 'followedup'] };
+        query.status = 'dailytask';
         if (date) dateRange('followUpDate', date);
-        break;
-      case 'pipeline':
-        query.isPipeline = true;
-        query.status = { $in: OPEN_STATUSES };
         break;
       case 'meeting':
         query.status = 'meeting';
@@ -82,7 +77,6 @@ leadsRouter.get(
         if (status && LEAD_STATUSES.includes(status as LeadStatus)) query.status = status;
     }
 
-    if (pipeline === 'true') query.isPipeline = true;
     if (source) query.source = source;
 
     if (search) {
@@ -127,9 +121,7 @@ leadsRouter.get(
 
     const query: Record<string, unknown> = { ...leadScope(user) };
 
-    if (tab === 'pipeline') query.isPipeline = true;
-    else if (tab === 'meeting') query.status = 'meeting';
-    else if (tab === 'daily') query.status = { $in: ['due', 'followedup'] };
+    if (tab === 'daily') query.status = 'dailytask';
     else if (LEAD_STATUSES.includes(tab as LeadStatus)) query.status = tab;
 
     const leads = await Lead.find(query).populate('assignedUser', 'name email').lean();
@@ -151,8 +143,7 @@ leadsRouter.get(
       TokenAmount: l.tokenAmount || 0,
       TokenDate: l.tokenDate ? new Date(l.tokenDate).toISOString().split('T')[0] : '',
       ExpectedTransferDate: l.expectedTransferDate ? new Date(l.expectedTransferDate).toISOString().split('T')[0] : '',
-      Pipeline: l.isPipeline ? 'Yes' : 'No',
-      FollowUpDate: l.followUpDate ? new Date(l.followUpDate).toISOString().split('T')[0] : '',
+      TaskDate: l.followUpDate ? new Date(l.followUpDate).toISOString().split('T')[0] : '',
       MeetingDate: l.meetingDate ? new Date(l.meetingDate).toISOString().split('T')[0] : '',
       AssignedTo: l.assignedUser?.name || '',
       CreatedAt: new Date(l.createdAt).toISOString().split('T')[0],
@@ -300,7 +291,7 @@ leadsRouter.patch(
 
     const editable = [
       'name', 'phone', 'email', 'company', 'source',
-      'dealValue', 'wonValue', 'followUpDate', 'isPipeline', 'meetingDate',
+      'dealValue', 'wonValue', 'followUpDate', 'meetingDate',
       'tokenAmount', 'tokenDate', 'expectedTransferDate',
     ] as const;
     for (const key of editable) {
@@ -328,6 +319,18 @@ leadsRouter.patch(
         throw new ApiError('VALIDATION_ERROR', `Invalid status. Allowed: ${LEAD_STATUSES.join(', ')}.`);
       }
       const to = body.status as LeadStatus;
+
+      // Daily Task and Meeting are read one day at a time, so a lead entering
+      // them without a date lands on no day at all — present in the stage,
+      // invisible in the UI. The editable loop above has already applied any
+      // date sent with this move, so this only rejects a genuinely dateless one.
+      if (to === 'dailytask' && !lead.followUpDate) {
+        throw new ApiError('VALIDATION_ERROR', 'followUpDate is required to move a lead into Daily Task.');
+      }
+      if (to === 'meeting' && !lead.meetingDate) {
+        throw new ApiError('VALIDATION_ERROR', 'meetingDate is required to move a lead into Meeting.');
+      }
+
       lead.statusHistory.push({
         from: lead.status,
         to,
@@ -352,9 +355,6 @@ leadsRouter.patch(
       // Losing a tokened deal means the bayana came back or was forfeited;
       // either way it stops being money the pipeline should count.
       if (to === 'lost') lead.tokenAmount = 0;
-
-      // Closing a deal takes it out of the pipeline either way.
-      if (to === 'won' || to === 'lost') lead.isPipeline = false;
     }
 
     await lead.save();

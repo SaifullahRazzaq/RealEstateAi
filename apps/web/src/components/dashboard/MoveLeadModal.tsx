@@ -5,16 +5,32 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowRight, AlertTriangle, Loader2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Lead, LeadStatus, CommissionSide, STATUS_META } from '@/store/crmStore';
+import { Lead, LeadStatus, CommissionSide, STATUS_META, MOVE_TARGETS, DATED_STATUS_FIELD } from '@/store/crmStore';
 import { cn, formatPKR } from '@/lib/utils';
-
-const ORDER: LeadStatus[] = ['new', 'incontact', 'followedup', 'due', 'meeting', 'token', 'won', 'lost'];
 
 /** Today in the yyyy-mm-dd shape a date input wants, in local time. */
 function todayISO() {
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
+
+/** Local-time yyyy-mm-dd, so a date picked here isn't shifted a day by UTC. */
+function toLocalDateInput(iso?: string) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+const STAGE_DATE_COPY: Record<string, { label: string; hint: string }> = {
+  dailytask: {
+    label: 'Task date',
+    hint: 'Daily Task is read one day at a time — this is the day the lead shows up on.',
+  },
+  meeting: {
+    label: 'Meeting date',
+    hint: 'The day this lead appears under Meetings. Set the exact time later with Schedule.',
+  },
+};
 
 interface MoveLeadModalProps {
   lead: Lead;
@@ -25,6 +41,9 @@ interface MoveLeadModalProps {
 export function MoveLeadModal({ lead, onClose, onMoved }: MoveLeadModalProps) {
   const [target, setTarget] = useState<LeadStatus | null>(null);
   const [note, setNote] = useState('');
+  // One field for both dated stages — only ever one is on screen at a time,
+  // and pre-filling with today makes the common "chase tomorrow" case one tap.
+  const [stageDate, setStageDate] = useState<string>(todayISO());
   const [wonValue, setWonValue] = useState<string>(String(lead.dealValue || ''));
   const [tokenAmount, setTokenAmount] = useState<string>(String(lead.tokenAmount || ''));
   const [transferDate, setTransferDate] = useState<string>(
@@ -41,11 +60,18 @@ export function MoveLeadModal({ lead, onClose, onMoved }: MoveLeadModalProps) {
     return { gross, net: Math.round(gross * (1 - (Number(dealerShare) || 0) / 100)) };
   };
 
+  const dateField = target ? DATED_STATUS_FIELD[target] : undefined;
+  // A dated stage with no date puts the lead on no list at all, so the move is
+  // blocked here rather than letting the server bounce it.
+  const ready = Boolean(target) && (!dateField || Boolean(stageDate));
+
   const confirmMove = async () => {
-    if (!target) return;
+    if (!target || !ready) return;
     setSaving(true);
     try {
       const payload: Record<string, unknown> = { status: target, moveNote: note };
+
+      if (dateField) payload[dateField] = stageDate;
 
       if (target === 'token') {
         payload.tokenAmount = Number(tokenAmount) || 0;
@@ -115,13 +141,19 @@ export function MoveLeadModal({ lead, onClose, onMoved }: MoveLeadModalProps) {
             <div>
               <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-3">Move to</p>
               <div className="grid grid-cols-2 gap-2">
-                {ORDER.filter((s) => s !== lead.status).map((s) => {
+                {MOVE_TARGETS.filter((s) => s !== lead.status).map((s) => {
                   const meta = STATUS_META[s];
                   const active = target === s;
                   return (
                     <button
                       key={s}
-                      onClick={() => setTarget(s)}
+                      onClick={() => {
+                        setTarget(s);
+                        // Reuse a date the lead already carries for that stage,
+                        // so re-dating an existing task starts from where it is.
+                        const field = DATED_STATUS_FIELD[s];
+                        if (field) setStageDate(toLocalDateInput(lead[field]) || todayISO());
+                      }}
                       className={cn('flex items-center gap-2 sm:gap-2.5 px-3 sm:px-4 py-3 rounded-2xl text-xs font-bold border transition-all min-w-0')}
                       style={{
                         color: meta.color,
@@ -137,6 +169,19 @@ export function MoveLeadModal({ lead, onClose, onMoved }: MoveLeadModalProps) {
                 })}
               </div>
             </div>
+
+            {/* The dated stages. Required, because Daily Task and Meetings are
+                both read a day at a time — an undated lead lands nowhere. */}
+            {target && dateField && (
+              <div>
+                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em] mb-2">
+                  {STAGE_DATE_COPY[target].label} <span className="text-orange-500">*</span>
+                </p>
+                <input type="date" value={stageDate} onChange={(e) => setStageDate(e.target.value)}
+                  className="input-field text-xs" style={{ colorScheme: 'light' }} />
+                <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">{STAGE_DATE_COPY[target].hint}</p>
+              </div>
+            )}
 
             {/* Token — bayana taken, transfer pending */}
             {target === 'token' && (
@@ -225,7 +270,7 @@ export function MoveLeadModal({ lead, onClose, onMoved }: MoveLeadModalProps) {
           {/* Footer */}
           <div className="flex-shrink-0 px-4 sm:px-6 py-4 border-t flex items-center gap-3" style={{ borderColor: 'var(--border)' }}>
             <button onClick={onClose} className="btn-secondary flex-1 justify-center">Cancel</button>
-            <button onClick={confirmMove} disabled={!target || saving}
+            <button onClick={confirmMove} disabled={!ready || saving}
               className="btn-primary flex-1 justify-center disabled:opacity-40">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               Confirm Move

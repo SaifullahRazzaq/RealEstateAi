@@ -88,7 +88,6 @@ export async function buildLeadContext(lead: ILead): Promise<string> {
     `Expected deal value: ${lead.dealValue ? `PKR ${lead.dealValue.toLocaleString('en-PK')}` : 'not set'}`,
     `Created: ${daysSince(lead.createdAt)} days ago`,
     `Last updated: ${daysSince(lead.updatedAt)} days ago`,
-    `In pipeline: ${lead.isPipeline ? 'yes' : 'no'}`,
   ];
 
   if (lead.company) lines.push(`Company: ${lead.company}`);

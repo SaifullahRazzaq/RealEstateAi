@@ -44,7 +44,7 @@ notificationsRouter.get('/', asyncHandler(async (req, res) => {
 
     Lead.find({
       ...leadScope,
-      status: { $in: ['due', 'followedup'] },
+      status: 'dailytask',
       followUpDate: { $lt: now },
     })
       .sort({ followUpDate: 1 })
@@ -70,7 +70,7 @@ notificationsRouter.get('/', asyncHandler(async (req, res) => {
       return {
         id: `meeting-${s._id}`,
         type: 'meeting' as const,
-        title: s.type === 'call' ? 'Call Reminder' : 'Meeting Reminder',
+        title: 'Schedule Reminder',
         message: needsName ? `${s.title} with ${leadName}` : s.title,
         at: new Date(s.scheduledAt).toISOString(),
         leadId: s.leadId?._id ? String(s.leadId._id) : undefined,

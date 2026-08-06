@@ -5,7 +5,16 @@ import {
   type PropertyType, type PropertyPurpose,
 } from './Property.js';
 
-// Pipeline statuses. new -> incontact -> followedup / due -> meeting -> token -> won | lost
+// Pipeline statuses. new -> dailytask -> pipeline -> meeting -> token -> won | lost
+//
+// Nothing advances on its own — an agent opens the lead, writes what happened
+// and moves it. That is deliberate: a board that only ever says what somebody
+// actually did is worth reading, one that ages leads on a timer is not.
+//
+// `dailytask` and `meeting` are the dated stages. A lead only appears on a day
+// when it carries the date that day is read by (`followUpDate`, `meetingDate`),
+// so both are required to enter those stages — see the PATCH in routes/leads.
+// `pipeline` is where a live prospect waits with no dated task against it.
 //
 // `token` is the stage every Pakistani property deal actually passes through:
 // the buyer has paid bayana and the transfer is scheduled, but nothing has
@@ -15,9 +24,8 @@ import {
 // the seller backs out, the fard turns up a problem, the buyer's finance fails.
 export type LeadStatus =
   | 'new'
-  | 'incontact'
-  | 'followedup'
-  | 'due'
+  | 'dailytask'
+  | 'pipeline'
   | 'meeting'
   | 'token'
   | 'won'
@@ -25,9 +33,8 @@ export type LeadStatus =
 
 export const LEAD_STATUSES: LeadStatus[] = [
   'new',
-  'incontact',
-  'followedup',
-  'due',
+  'dailytask',
+  'pipeline',
   'meeting',
   'token',
   'won',
@@ -107,8 +114,8 @@ export interface ILead extends Document {
   tokenDate?: Date;
   /** When the transfer is booked — what the token stage is waiting on. */
   expectedTransferDate?: Date;
+  /** The day this lead is due in Daily Task. Required by the `dailytask` stage. */
   followUpDate?: Date;
-  isPipeline: boolean;
   meetingDate?: Date;
   assignedUser: mongoose.Types.ObjectId;
   companyId: mongoose.Types.ObjectId;
@@ -179,7 +186,6 @@ const LeadSchema = new Schema<ILead>(
     tokenDate: { type: Date },
     expectedTransferDate: { type: Date },
     followUpDate: { type: Date },
-    isPipeline: { type: Boolean, default: false },
     meetingDate: { type: Date },
     assignedUser: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     companyId: { type: Schema.Types.ObjectId, ref: 'Company', required: true },
@@ -234,8 +240,8 @@ LeadSchema.index({ companyId: 1, status: 1 });
 // Token deals are chased by transfer date, so that is how they get read.
 LeadSchema.index({ companyId: 1, expectedTransferDate: 1 });
 LeadSchema.index({ companyId: 1, assignedUser: 1 });
-LeadSchema.index({ companyId: 1, isPipeline: 1 });
-LeadSchema.index({ companyId: 1, followUpDate: 1 });
+// Daily Task reads one day at a time, always within a status.
+LeadSchema.index({ companyId: 1, status: 1, followUpDate: 1 });
 LeadSchema.index({ companyId: 1, meetingDate: 1 });
 LeadSchema.index({ companyId: 1, createdAt: -1 });
 // Sorting the pipeline by AI score is the whole point of storing it.

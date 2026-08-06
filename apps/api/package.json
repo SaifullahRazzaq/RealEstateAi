@@ -12,7 +12,8 @@
     "seed": "tsx --env-file=.env src/scripts/seed-leads.ts",
     "create-admin": "tsx --env-file=.env src/scripts/create-admin.ts",
     "seed:demo": "tsx --env-file=.env src/scripts/seed-demo.ts",
-    "backfill:commission": "tsx --env-file=.env src/scripts/backfill-commission.ts"
+    "backfill:commission": "tsx --env-file=.env src/scripts/backfill-commission.ts",
+    "migrate:stages": "tsx --env-file=.env src/scripts/migrate-lead-stages.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

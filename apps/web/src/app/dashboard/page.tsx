@@ -17,8 +17,8 @@ import { formatPKR, formatPKRCompact } from '@/lib/utils';
 interface DashboardData {
   range: { start: string; end: string };
   kpis: {
-    totalLeads: number; newLeads: number; inContact: number; followedUp: number;
-    due: number; meeting: number; wonCount: number; lostCount: number;
+    totalLeads: number; newLeads: number; dailyTask: number; pipeline: number;
+    meeting: number; wonCount: number; lostCount: number;
     createdInRange: number; meetingsScheduled: number; calls: number;
     revenueWon: number; salesVolume: number;
     pipelineValue: number; pipelineCommission: number;
