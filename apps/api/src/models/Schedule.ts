@@ -1,6 +1,5 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
-export type ScheduleType = 'meeting' | 'call' | 'followup';
 export type ScheduleStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
 export type MeetingProvider = 'google_meet' | 'manual' | 'in_person';
 /** What actually came out of the meeting — drives the lead's next status. */
@@ -10,7 +9,6 @@ export interface ISchedule extends Document {
   leadId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   companyId: mongoose.Types.ObjectId;
-  type: ScheduleType;
   title: string;
   scheduledAt: Date;
   durationMins: number;
@@ -44,11 +42,6 @@ const ScheduleSchema = new Schema<ISchedule>(
     leadId: { type: Schema.Types.ObjectId, ref: 'Lead', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     companyId: { type: Schema.Types.ObjectId, ref: 'Company', required: true },
-    type: {
-      type: String,
-      enum: ['meeting', 'call', 'followup'],
-      default: 'meeting',
-    },
     title: { type: String, required: true, trim: true },
     scheduledAt: { type: Date, required: true },
     durationMins: { type: Number, default: 30 },

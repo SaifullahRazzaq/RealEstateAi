@@ -2,7 +2,7 @@
 
 import { LeadList } from '@/components/dashboard/LeadList';
 import { LeadDrawer } from '@/components/dashboard/LeadDrawer';
-import { TrendingUp, Star } from 'lucide-react';
+import { TrendingUp, ArrowRightLeft } from 'lucide-react';
 
 export default function PipelinePage() {
   return (
@@ -12,15 +12,18 @@ export default function PipelinePage() {
           <TrendingUp className="w-4 h-4 text-purple-400" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-900">Pipeline — Hot Prospects</p>
-          <p className="text-xs text-slate-500">High-potential leads tagged with <Star className="w-3 h-3 inline text-amber-400 fill-amber-400" /></p>
+          <p className="text-sm font-semibold text-slate-900">Pipeline</p>
+          <p className="text-xs text-slate-500">Live prospects with no date set against them</p>
         </div>
       </div>
 
       {/* Info banner */}
       <div className="flex items-center gap-3 px-4 py-3 rounded-xl" style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.15)' }}>
-        <Star className="w-4 h-4 text-amber-400 fill-amber-400 flex-shrink-0" />
-        <p className="text-xs text-slate-400">Pipeline leads remain in New Leads or Daily Task. Click the star icon in any lead to add it here.</p>
+        <ArrowRightLeft className="w-4 h-4 text-purple-400 flex-shrink-0" />
+        <p className="text-xs text-slate-600">
+          A live prospect parked here has nothing booked yet. Use Move Lead to give it a task date
+          or a meeting the moment there is one.
+        </p>
       </div>
 
       <div className="flex-1 lg:min-h-0 lg:overflow-y-auto">

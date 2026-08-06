@@ -12,7 +12,7 @@ dashboardRouter.use(requireAuth);
 /** Express gives query values as string | string[] | ParsedQs; we only ever want a string. */
 const qs = (v: unknown): string | null => (typeof v === 'string' ? v : null);
 
-const OPEN_STATUSES: LeadStatus[] = ['new', 'incontact', 'followedup', 'due', 'meeting', 'token'];
+const OPEN_STATUSES: LeadStatus[] = ['new', 'dailytask', 'pipeline', 'meeting', 'token'];
 
 function dayKey(d: Date) {
   return d.toISOString().split('T')[0];
@@ -228,9 +228,8 @@ dashboardRouter.get('/', asyncHandler(async (req, res) => {
     kpis: {
       totalLeads,
       newLeads: statusMap['new'] || 0,
-      inContact: statusMap['incontact'] || 0,
-      followedUp: statusMap['followedup'] || 0,
-      due: statusMap['due'] || 0,
+      dailyTask: statusMap['dailytask'] || 0,
+      pipeline: statusMap['pipeline'] || 0,
       meeting: statusMap['meeting'] || 0,
       token: statusMap['token'] || 0,
       wonCount,
@@ -255,9 +254,8 @@ dashboardRouter.get('/', asyncHandler(async (req, res) => {
     timeseries,
     statusDistribution: [
       { name: 'new', value: statusMap['new'] || 0 },
-      { name: 'incontact', value: statusMap['incontact'] || 0 },
-      { name: 'followedup', value: statusMap['followedup'] || 0 },
-      { name: 'due', value: statusMap['due'] || 0 },
+      { name: 'dailytask', value: statusMap['dailytask'] || 0 },
+      { name: 'pipeline', value: statusMap['pipeline'] || 0 },
       { name: 'meeting', value: statusMap['meeting'] || 0 },
       { name: 'token', value: statusMap['token'] || 0 },
       { name: 'won', value: statusMap['won'] || 0 },

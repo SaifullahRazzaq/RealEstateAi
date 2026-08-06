@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Schedule, type MeetingProvider, type MeetingOutcome } from '../models/Schedule.js';
-import { Lead } from '../models/Lead.js';
+import { Lead, type LeadStatus } from '../models/Lead.js';
 import { ApiError } from '../lib/apiError.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { requireAuth, authUser } from '../middleware/auth.js';
@@ -51,13 +51,13 @@ scheduleRouter.get(
   })
 );
 
-/** POST /api/schedule — book a meeting, call or follow-up against a lead. */
+/** POST /api/schedule — book the lead's next dated commitment. */
 scheduleRouter.post(
   '/',
   asyncHandler(async (req, res) => {
     const user = authUser(req);
     const {
-      leadId, type, title, scheduledAt, durationMins, location, notes,
+      leadId, title, scheduledAt, durationMins, location, notes,
       provider, meetingLink, attendees,
     } = req.body ?? {};
 
@@ -110,7 +110,6 @@ scheduleRouter.post(
       leadId,
       userId: user.id,
       companyId: user.companyId,
-      type: type || 'meeting',
       title,
       scheduledAt: startsAt,
       durationMins: duration,
@@ -123,10 +122,14 @@ scheduleRouter.post(
       attendees: invitees,
     });
 
-    // Reflect on the lead so it surfaces in the Meeting tab.
-    if ((type || 'meeting') === 'meeting') {
-      lead.meetingDate = new Date(scheduledAt);
-      if (lead.status !== 'won' && lead.status !== 'lost') lead.status = 'meeting';
+    // Reflect the date on the lead so it surfaces on the right day. Which date
+    // depends on the stage the agent already moved it to — scheduling never
+    // moves a lead itself, because moving leads is the agent's call.
+    if (lead.status === 'meeting') {
+      lead.meetingDate = startsAt;
+      await lead.save();
+    } else if (lead.status !== 'won' && lead.status !== 'lost') {
+      lead.followUpDate = startsAt;
       await lead.save();
     }
 
@@ -146,7 +149,7 @@ scheduleRouter.patch(
     if (!existing) throw new ApiError('NOT_FOUND', 'Schedule not found.');
 
     const allowed: Record<string, unknown> = {};
-    for (const key of ['title', 'type', 'scheduledAt', 'durationMins', 'location', 'notes', 'status', 'meetingLink']) {
+    for (const key of ['title', 'scheduledAt', 'durationMins', 'location', 'notes', 'status', 'meetingLink']) {
       if (body[key] !== undefined) allowed[key] = body[key];
     }
     if (allowed.scheduledAt) allowed.scheduledAt = new Date(allowed.scheduledAt as string);
@@ -175,9 +178,9 @@ scheduleRouter.patch(
 );
 
 /** Which lead status a meeting outcome should move the lead to. */
-const OUTCOME_TO_LEAD_STATUS: Record<MeetingOutcome, string | null> = {
-  interested: 'followedup',
-  follow_up: 'due',
+const OUTCOME_TO_LEAD_STATUS: Record<MeetingOutcome, LeadStatus | null> = {
+  interested: 'pipeline',
+  follow_up: 'dailytask',
   deal_closed: 'won',
   not_interested: 'lost',
   rescheduled: null, // lead stays where it is
@@ -205,6 +208,18 @@ scheduleRouter.post(
       throw new ApiError('CONFLICT', 'This meeting has already been completed.');
     }
 
+    // The lead is resolved and vetted before anything is written, so a missing
+    // follow-up date can't leave the meeting completed and the lead stranded.
+    const nextStatus = OUTCOME_TO_LEAD_STATUS[outcome as MeetingOutcome];
+    const lead = await Lead.findOne({ _id: schedule.leadId, ...leadScope(user) });
+
+    const moving = Boolean(lead && nextStatus && lead.status !== nextStatus);
+    // Daily Task is read one day at a time, so a follow-up outcome has to name
+    // the day it's due — otherwise the lead lands on no list at all.
+    if (moving && nextStatus === 'dailytask' && !followUpDate && !lead!.followUpDate) {
+      throw new ApiError('VALIDATION_ERROR', 'followUpDate is required for a follow_up outcome.');
+    }
+
     schedule.status = 'completed';
     schedule.outcome = outcome;
     schedule.outcomeNotes = outcomeNotes;
@@ -213,26 +228,19 @@ scheduleRouter.post(
     schedule.actualDurationMins = actualDurationMins ?? schedule.durationMins;
     await schedule.save();
 
-    // Advance the lead to match the outcome.
-    const nextStatus = OUTCOME_TO_LEAD_STATUS[outcome as MeetingOutcome];
-    const lead = await Lead.findOne({ _id: schedule.leadId, ...leadScope(user) });
+    if (lead && nextStatus && moving) {
+      if (followUpDate) lead.followUpDate = new Date(followUpDate);
 
-    if (lead && nextStatus && lead.status !== nextStatus) {
       lead.statusHistory.push({
         from: lead.status,
-        to: nextStatus as typeof lead.status,
+        to: nextStatus,
         by: user.id as never,
         at: new Date(),
         note: `Meeting outcome: ${outcome}`,
       });
-      lead.status = nextStatus as typeof lead.status;
+      lead.status = nextStatus;
 
-      if (nextStatus === 'won') {
-        if (!lead.wonValue) lead.wonValue = lead.dealValue;
-        lead.isPipeline = false;
-      }
-      if (nextStatus === 'lost') lead.isPipeline = false;
-      if (followUpDate) lead.followUpDate = new Date(followUpDate);
+      if (nextStatus === 'won' && !lead.wonValue) lead.wonValue = lead.dealValue;
 
       await lead.save();
     }

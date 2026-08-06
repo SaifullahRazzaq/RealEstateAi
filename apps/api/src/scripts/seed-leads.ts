@@ -14,7 +14,7 @@ import { Lead, LeadStatus } from '../models/Lead.js';
 import { Call } from '../models/Call.js';
 import { Schedule } from '../models/Schedule.js';
 
-const STATUSES: LeadStatus[] = ['new', 'incontact', 'followedup', 'due', 'meeting', 'won', 'lost'];
+const STATUSES: LeadStatus[] = ['new', 'dailytask', 'pipeline', 'meeting', 'won', 'lost'];
 const SOURCES = ['Website', 'Facebook', 'Instagram', 'LinkedIn', 'Referral', 'Zillow', 'Walk-in'];
 const COMPANIES = [
   'Nordic Soft AB', 'Travel Ventures', 'Design Studios', 'AI Dynamics', 'EcoTech Solutions',
@@ -80,10 +80,9 @@ async function seedData() {
         status,
         dealValue,
         wonValue: isWon ? dealValue : 0,
-        isPipeline: ['incontact', 'followedup', 'meeting'].includes(status) && Math.random() > 0.5,
         assignedUser: user._id,
         companyId: user.companyId,
-        followUpDate: ['due', 'followedup'].includes(status) ? daysFromNow(randInt(0, 5)) : null,
+        followUpDate: status === 'dailytask' ? daysFromNow(randInt(0, 5)) : null,
         meetingDate: status === 'meeting' ? daysFromNow(randInt(0, 7)) : null,
         createdAt,
         updatedAt: isWon || status === 'lost' ? daysAgo(randInt(0, 30)) : createdAt,

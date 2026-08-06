@@ -2,13 +2,31 @@ import { create } from 'zustand';
 
 export type LeadStatus =
   | 'new'
-  | 'incontact'
-  | 'followedup'
-  | 'due'
+  | 'dailytask'
+  | 'pipeline'
   | 'meeting'
   | 'token'
   | 'won'
   | 'lost';
+
+/**
+ * The stages an agent can move a lead into by hand, in board order. `new` is
+ * absent because nothing moves back to it — a lead is new once.
+ */
+export const MOVE_TARGETS: LeadStatus[] = [
+  'dailytask',
+  'pipeline',
+  'meeting',
+  'token',
+  'won',
+  'lost',
+];
+
+/** Stages read one day at a time, and the lead field each one is dated by. */
+export const DATED_STATUS_FIELD: Partial<Record<LeadStatus, 'followUpDate' | 'meetingDate'>> = {
+  dailytask: 'followUpDate',
+  meeting: 'meetingDate',
+};
 
 export type CommissionSide = 'buyer' | 'seller' | 'both';
 
@@ -27,7 +45,6 @@ export interface LeadCommission {
 export type TabType =
   | 'dashboard'
   | 'new'
-  | 'incontact'
   | 'daily'
   | 'pipeline'
   | 'meeting'
@@ -62,8 +79,8 @@ export interface Lead {
   tokenAmount: number;
   tokenDate?: string;
   expectedTransferDate?: string;
+  /** The day this lead is due in Daily Task. */
   followUpDate?: string;
-  isPipeline: boolean;
   meetingDate?: string;
   assignedUser: { _id: string; name: string; email: string } | string;
   companyId: string;
@@ -195,10 +212,9 @@ export const useCRMStore = create<CRMState>((set) => ({
 // Shared status metadata used across the UI.
 export const STATUS_META: Record<LeadStatus, { label: string; color: string; badge: string }> = {
   new: { label: 'New', color: '#3b82f6', badge: 'badge-new' },
-  incontact: { label: 'In Contact', color: '#06b6d4', badge: 'badge-incontact' },
-  followedup: { label: 'Followed Up', color: '#8b5cf6', badge: 'badge-followedup' },
-  due: { label: 'Due', color: '#f59e0b', badge: 'badge-due' },
-  meeting: { label: 'Meeting', color: '#eab308', badge: 'badge-meeting' },
+  dailytask: { label: 'Daily Task', color: '#f59e0b', badge: 'badge-daily' },
+  pipeline: { label: 'Pipeline', color: '#8b5cf6', badge: 'badge-pipeline' },
+  meeting: { label: 'Meeting', color: '#06b6d4', badge: 'badge-meeting' },
   // Deliberately close to won's green without being it — bayana is taken but
   // the transfer has not happened, and the colour should not claim otherwise.
   token: { label: 'Token', color: '#0d9488', badge: 'badge-token' },

@@ -32,16 +32,16 @@ const DEMO_USERS = [
 const LEADS: Record<string, Array<{ name: string; phone: string; company: string; status: LeadStatus; dealValue: number; source: string }>> = {
   'bilal@skyline.demo': [
     { name: 'Hamza Sheikh', phone: '03001112201', company: 'Sheikh Constructions', status: 'new', dealValue: 8500000, source: 'Facebook' },
-    { name: 'Rabia Noor', phone: '03001112202', company: 'Noor Textiles', status: 'incontact', dealValue: 12000000, source: 'Website' },
+    { name: 'Rabia Noor', phone: '03001112202', company: 'Noor Textiles', status: 'dailytask', dealValue: 12000000, source: 'Website' },
     { name: 'Kamran Butt', phone: '03001112203', company: 'Butt Motors', status: 'meeting', dealValue: 25000000, source: 'Referral' },
-    { name: 'Zeeshan Ali', phone: '03001112204', company: 'Ali Traders', status: 'due', dealValue: 6000000, source: 'Walk-in' },
+    { name: 'Zeeshan Ali', phone: '03001112204', company: 'Ali Traders', status: 'pipeline', dealValue: 6000000, source: 'Walk-in' },
     { name: 'Farhan Iqbal', phone: '03001112205', company: 'Iqbal Group', status: 'won', dealValue: 18000000, source: 'Referral' },
   ],
   'sana@skyline.demo': [
     { name: 'Mariam Yousaf', phone: '03001112301', company: 'Yousaf Estates', status: 'new', dealValue: 9500000, source: 'Instagram' },
-    { name: 'Tahir Mehmood', phone: '03001112302', company: 'Mehmood & Sons', status: 'incontact', dealValue: 15000000, source: 'Website' },
+    { name: 'Tahir Mehmood', phone: '03001112302', company: 'Mehmood & Sons', status: 'dailytask', dealValue: 15000000, source: 'Website' },
     { name: 'Nimra Aslam', phone: '03001112303', company: 'Aslam Developers', status: 'meeting', dealValue: 32000000, source: 'Facebook' },
-    { name: 'Owais Raza', phone: '03001112304', company: 'Raza Industries', status: 'followedup', dealValue: 7500000, source: 'Cold Call' },
+    { name: 'Owais Raza', phone: '03001112304', company: 'Raza Industries', status: 'pipeline', dealValue: 7500000, source: 'Cold Call' },
     { name: 'Hina Tariq', phone: '03001112305', company: 'Tariq Marketing', status: 'lost', dealValue: 4000000, source: 'Walk-in' },
   ],
 };
@@ -156,7 +156,6 @@ async function main() {
         email: `${row.name.split(' ')[0].toLowerCase()}@example.com`,
         assignedUser: owner._id,
         companyId: company._id,
-        isPipeline: ['meeting', 'due', 'followedup'].includes(row.status),
         commission: { rate: 1, side: 'both', dealerSharePercent: 0 },
         requirement: want
           ? {
@@ -172,7 +171,7 @@ async function main() {
             }
           : undefined,
         wonValue: row.status === 'won' ? row.dealValue : 0,
-        followUpDate: ['due', 'followedup'].includes(row.status) ? new Date(now + 86400000) : undefined,
+        followUpDate: row.status === 'dailytask' ? new Date(now + 86400000) : undefined,
         meetingDate: row.status === 'meeting' ? new Date(now + 2 * 86400000) : undefined,
         createdAt,
         updatedAt: createdAt,
@@ -205,7 +204,6 @@ async function main() {
           leadId: lead._id,
           userId: owner._id,
           companyId: company._id,
-          type: 'meeting',
           title: `Site visit with ${row.name}`,
           scheduledAt: new Date(now + 2 * 86400000),
           durationMins: 45,
@@ -282,7 +280,6 @@ async function main() {
       tokenAmount: d.token,
       tokenDate: tokenAt,
       expectedTransferDate: new Date(now + d.transferInDays * 86400000),
-      isPipeline: true,
       commission: { rate: 1, side: 'both', dealerSharePercent: 0 },
       statusHistory: [{ from: 'meeting', to: 'token', by: agents[i % agents.length]._id, at: tokenAt, note: 'Bayana received' }],
     });

@@ -279,7 +279,7 @@
                 }
               ]
             },
-            "description": "Query params:\n- `tab` — all | new | incontact | daily | due | followedup | pipeline | meeting | won | lost\n- `date` — YYYY-MM-DD, used with tab=daily / tab=meeting\n- `search` — matches name, phone, email or company\n- `source`, `pipeline=true`\n- `sort` — recent | oldest | value | name\n- `page`, `limit`\n\nAgents only ever see leads assigned to them; admins see the whole company."
+            "description": "Query params:\n- `tab` — all | new | daily | pipeline | meeting | token | won | lost\n- `date` — YYYY-MM-DD, used with tab=daily / tab=meeting\n- `search` — matches name, phone, email or company\n- `source`\n- `sort` — recent | oldest | value | name\n- `page`, `limit`\n\nAgents only ever see leads assigned to them; admins see the whole company."
           },
           "response": [],
           "event": [
@@ -415,14 +415,14 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"dealValue\": 3000000,\n  \"isPipeline\": true,\n  \"followUpDate\": \"2026-08-05\"\n}",
+              "raw": "{\n  \"dealValue\": 3000000,\n  \"status\": \"dailytask\",\n  \"followUpDate\": \"2026-08-05\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
-            "description": "Editable: name, phone, email, company, source, dealValue, wonValue, followUpDate, isPipeline, meetingDate."
+            "description": "Editable: name, phone, email, company, source, dealValue, wonValue, followUpDate, meetingDate.\n\nMoving to `dailytask` requires `followUpDate`; moving to `meeting` requires `meetingDate` \u2014 both stages are read one day at a time, so an undated lead would land on no list."
           },
           "response": [],
           "event": [
@@ -762,7 +762,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"leadId\": \"{{leadId}}\",\n  \"type\": \"meeting\",\n  \"title\": \"Site visit — DHA Phase 6\",\n  \"scheduledAt\": \"2026-08-01T10:00:00.000Z\",\n  \"durationMins\": 45,\n  \"location\": \"DHA Phase 6, Lahore\",\n  \"notes\": \"Bring the floor plans.\"\n}",
+              "raw": "{\n  \"leadId\": \"{{leadId}}\",\n  \"title\": \"Site visit — DHA Phase 6\",\n  \"scheduledAt\": \"2026-08-01T10:00:00.000Z\",\n  \"durationMins\": 45,\n  \"location\": \"DHA Phase 6, Lahore\",\n  \"notes\": \"Bring the floor plans.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"

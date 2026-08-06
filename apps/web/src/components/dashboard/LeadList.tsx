@@ -2,7 +2,7 @@
 
 import { apiFetch } from '@/lib/api';
 import { useEffect, useCallback, useRef, useState } from 'react';
-import { Star, ChevronRight, ChevronLeft, Loader2, Clock, ArrowRightLeft, Banknote } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Loader2, Clock, ArrowRightLeft, Banknote } from 'lucide-react';
 import { useCRMStore, Lead, STATUS_META } from '@/store/crmStore';
 import { formatDate, formatPhone, formatPKRCompact, cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -163,11 +163,6 @@ export function LeadList({ tab, date, emptyMessage = 'No leads found', emptyIcon
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-bold text-slate-900 truncate tracking-tight group-hover:text-orange-500 transition-colors">{lead.name}</span>
-                    {lead.isPipeline && (
-                      <div className="w-5 h-5 rounded-lg bg-amber-400/10 flex items-center justify-center">
-                        <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                      </div>
-                    )}
                     <AIScoreBadge ai={lead.ai} />
                   </div>
                   <div className="flex items-center flex-wrap gap-x-3 gap-y-1.5 sm:gap-x-4">

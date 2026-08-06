@@ -4,7 +4,7 @@ import { apiFetch } from '@/lib/api';
 import { useEffect, useState, useRef } from 'react';
 import {
   X, Phone, Send, Loader2, Video, MessageCircle, Hash, Clock,
-  ArrowRightLeft, CalendarPlus, Banknote, Mail, Building2, Star, StickyNote,
+  ArrowRightLeft, CalendarPlus, Banknote, Mail, Building2, CalendarCheck, StickyNote,
 } from 'lucide-react';
 import { useCRMStore, Comment, Lead, STATUS_META } from '@/store/crmStore';
 import { formatDate, formatDateTime, formatPhone, formatPKR, cn } from '@/lib/utils';
@@ -117,10 +117,7 @@ export function LeadDrawer() {
                 {selectedLead.name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight truncate">{selectedLead.name}</h2>
-                  {selectedLead.isPipeline && <Star className="w-4 h-4 text-amber-400 fill-amber-400 flex-shrink-0" />}
-                </div>
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight truncate">{selectedLead.name}</h2>
                 <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-1">
                   <span className={cn('badge', meta.badge)}>{meta.label}</span>
                   {selectedLead.company && <span className="text-[11px] text-slate-500 truncate">{selectedLead.company}</span>}
@@ -226,18 +223,18 @@ export function LeadDrawer() {
             )}
           </section>
 
-          {/* Pipeline toggle + meeting date */}
-          <section className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200">
-            <div className="flex items-center gap-2 min-w-0">
-              <Star className={cn('w-4 h-4 flex-shrink-0', selectedLead.isPipeline ? 'text-amber-400 fill-amber-400' : 'text-slate-400')} />
-              <span className="text-xs font-semibold text-slate-700">Mark as Pipeline (hot)</span>
-            </div>
-            <button onClick={() => patchLead({ isPipeline: !selectedLead.isPipeline })}
-              aria-label="Toggle pipeline"
-              className={cn('w-11 h-6 rounded-full transition-all relative flex-shrink-0', selectedLead.isPipeline ? 'bg-amber-500' : 'bg-slate-300')}>
-              <span className={cn('absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all', selectedLead.isPipeline ? 'left-[22px]' : 'left-0.5')} />
-            </button>
-          </section>
+          {/* Pipeline is a stage the agent moves the lead into now, not a flag
+              set from here — so the only date this section still shows is the
+              one the lead's own stage is read by. */}
+          {selectedLead.status === 'dailytask' && selectedLead.followUpDate && (
+            <section className="flex items-center gap-3 px-4 py-3 rounded-2xl" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
+              <CalendarCheck className="w-4 h-4 text-amber-500" />
+              <div>
+                <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Task Date</p>
+                <p className="text-xs font-semibold text-slate-900">{formatDate(selectedLead.followUpDate)}</p>
+              </div>
+            </section>
+          )}
 
           {selectedLead.meetingDate && (
             <section className="flex items-center gap-3 px-4 py-3 rounded-2xl" style={{ background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.15)' }}>
